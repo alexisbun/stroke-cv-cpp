@@ -38,7 +38,7 @@ if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
     endif()
 endif()
 
-project(CPPModernTemplate LANGUAGES CXX VERSION 0.1.0)
+project(StrokeCVLib LANGUAGES CXX VERSION 0.1.0)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
@@ -46,9 +46,11 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-find_package(spdlog)
+# find_package(spdlog)
 
-add_executable(${PROJECT_NAME} src/main.cpp)
+add_library(${PROJECT_NAME} SHARED src/lib.cpp)
+
+target_include_directories(${PROJECT_NAME} PUBLIC include)
 
 if(MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE /W4)
@@ -56,9 +58,9 @@ else()
     target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 
-target_link_libraries(${PROJECT_NAME} PRIVATE
-    spdlog::spdlog
-)
+# target_link_libraries(${PROJECT_NAME} PRIVATE
+#     spdlog::spdlog
+# )
 
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
