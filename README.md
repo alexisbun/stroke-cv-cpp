@@ -9,7 +9,7 @@ To run on a physical Android device:
 4. Run the project with flutter run.
 
 Prerequisites:
-- Physical Android device with an arm64-v8a architecture
+- Physical Android device with an arm64-v8a architecture and at least API level 30.
 - Configured Flutter development enviroment with an Andrioid Sdk (https://docs.flutter.dev/install/quick, https://docs.flutter.dev/platform-integration/android/setup)
 - The 'ANDRIOID_NDK_HOME' enviroment variable set (for example, export ANDROID_NDK_HOME="[path]/Android/Sdk/ndk/30.0.14904198")
 
