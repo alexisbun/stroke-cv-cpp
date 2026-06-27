@@ -14,7 +14,6 @@ ffigen:
   compiler-opts:
     - '-I/home/alexis/Android/Sdk/ndk/30.0.14904198/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/'
     - '-I/home/alexis/Android/Sdk/ndk/30.0.14904198/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/aarch64-linux-android'
-  
 
 environment:
   sdk: ^3.12.0

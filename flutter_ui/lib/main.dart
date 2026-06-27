@@ -35,6 +35,7 @@ class MainApp extends StatelessWidget {
     print("Sum result: ${result}");
     print("Multiply result: ${multiply}");
     print(gpu);
+    print(result);
   }
 
   @override
