@@ -3,11 +3,9 @@ Project includes my cpp library (cpp_lib), a sandbox UI (fluttter_ui), and my cu
 
 To run on a physical Android device:
 
-(in progress, currently working on way to automatically run flutter project with proper .so configured inside the CMakeLists.txt):
 1. Clone the repository (git clone https://github.com/alexisbun/stroke-cv-cpp.git to your prefered directory)
 2. Build and compile the library in 'cpp_lib' with cmake --preset android-arm64-debug and then cmake --build build/arm64-v8a-debug/
-3. In 'lib_cpp' locate the file 'libStrokeCVLib.so' (inside /build/arm64-v8a-debug/libStrokeCVLib.so)
-4. Copy-paste the file to the flutter_ui andriod build folder in android/app/src/main/jniLibs/arm64-v8a
+3. Run 'dart run ffigen' inside of flutter_ui (sandbox UI)
 5. Run the project with flutter run.
 
 Prerequisites:
