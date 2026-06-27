@@ -6,7 +6,7 @@ To run on a physical Android device:
 1. Clone the repository (git clone https://github.com/alexisbun/stroke-cv-cpp.git to your prefered directory)
 2. Build and compile the library in 'cpp_lib' with cmake --preset android-arm64-debug and then cmake --build build/arm64-v8a-debug/
 3. Run 'dart run ffigen' inside of flutter_ui (sandbox UI)
-5. Run the project with flutter run.
+4. Run the project with flutter run.
 
 Prerequisites:
 - Physical Android device with an arm64-v8a architecture
