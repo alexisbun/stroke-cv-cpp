@@ -1,3 +1,2 @@
 # stroke_action_awareness
-
-A new Flutter project.
+Current in-progress working UI for my application.

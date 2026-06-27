@@ -1,17 +1,6 @@
-# stroke-cv-app
-Project includes my cpp library (cpp_lib), a sandbox UI (fluttter_ui), and my current working UI (working_ui). 
+# cpp-lib
+The CMakeLists.txt template was provided by Frédéric Lachapelle (Fredolx) under an AGPL-3.0 Public Licence (https://github.com/Fredolx/cpp-modern-template).
 
-To run on a physical Android device:
+Documentation in progress.
 
-(in progress, currently working on way to automatically run flutter project with proper .so configured inside the CMakeLists.txt):
-1. Clone the repository (git clone https://github.com/alexisbun/stroke-cv-cpp.git to your prefered directory)
-2. Build and compile the library in 'cpp_lib' with cmake --preset android-arm64-debug and then cmake --build build/arm64-v8a-debug/
-3. In 'lib_cpp' locate the file 'libStrokeCVLib.so' (inside /build/arm64-v8a-debug/libStrokeCVLib.so)
-4. Copy-paste the file to the flutter_ui andriod build folder in android/app/src/main/jniLibs/arm64-v8a
-5. Run the project with flutter run.
-
-Prerequisites:
-- Physical Android device with an arm64-v8a architecture
-- Configured Flutter development enviroment with an Andrioid Sdk (https://docs.flutter.dev/install/quick, https://docs.flutter.dev/platform-integration/android/setup)
-- The 'ANDRIOID_NDK_HOME' enviroment variable set (for example, export ANDROID_NDK_HOME="[path]/Android/Sdk/ndk/30.0.14904198")
 

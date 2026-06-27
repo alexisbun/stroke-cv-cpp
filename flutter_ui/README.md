@@ -1,3 +1,2 @@
 # camera_mvp
-
-A new Flutter project.
+Sandbox / testing cpp-lib.
