@@ -33,7 +33,7 @@
                 "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "$env{ANDROID_NDK_HOME}/build/cmake/android.toolchain.cmake",
                 "VCPKG_KEEP_ENV_VARS": "ANDROID_NDK_HOME",
                 "ANDROID_PLATFORM": "android-30",
-                "ANDROID_STL": "c++_static"
+                "ANDROID_STL": "c++_shared"
             }
         },
         {
@@ -104,6 +104,17 @@
             "cacheVariables": {
                 "ANDROID_ABI": "x86_64",
                 "VCPKG_TARGET_TRIPLET": "x64-android"
+            }
+        },
+        {
+            "name": "Custom configure preset",
+            "displayName": "Custom configure preset",
+            "description": "Sets Ninja generator, build and install directory",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/out/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}"
             }
         }
     ],
