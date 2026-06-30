@@ -45,10 +45,20 @@ class TexturePlugin : FlutterPlugin {
 
         channel = MethodChannel(binding.binaryMessenger, "texture-backend").apply {
             setMethodCallHandler { call, result ->
-                if (call.method == "textureid") {
-                    result.success(prod.id())
-                } else {
-                    result.notImplemented()
+                when (call.method) {
+                    "textureid" -> {
+                        result.success(producer?.id())
+                    }
+                    "disposeTexture" -> {
+                        if (nativeHandle != 0L) {
+                            nativeDetach(nativeHandle)
+                            nativeHandle = 0L
+                        }
+                        producer?.release()
+                        producer = null
+                        result.success(null)
+                    }
+                    else -> result.notImplemented()
                 }
             }
         }
