@@ -86,7 +86,7 @@ class MainApp extends StatelessWidget {
     if (Platform.isAndroid) {
       return ffi.DynamicLibrary.open('libStrokeCVLib.so');
     } else if (Platform.isIOS || Platform.isMacOS) {
-      // On iOS/macOS, if statically linked, use process()
+      // On iOS/macOS, if statically linked, use process().
       return ffi.DynamicLibrary.process();
     } else if (Platform.isWindows) {
       return ffi.DynamicLibrary.open('camera_mvp.dll');

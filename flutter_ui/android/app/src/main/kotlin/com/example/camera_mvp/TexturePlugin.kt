@@ -15,12 +15,14 @@ class TexturePlugin : FlutterPlugin {
     private external fun nativeAttach(surface: Surface, width: Int, height: Int): Long
     private external fun nativeDetach(handle: Long)
 
+    // A companion object can be viewed conceptually as declaring static members for the TexturePlugin class.
     companion object {
         init {
             System.loadLibrary("StrokeCVLib")
         }
     }
 
+    // The binding parameter is a helper object provided by the FlutterEngine which unlocks necessary hooks to interact with textureRegistry.
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         val targetWidth = 1920
         val targetHeight = 1080
@@ -29,6 +31,8 @@ class TexturePlugin : FlutterPlugin {
         prod.setSize(targetWidth,targetHeight)
         producer = prod
 
+        // Pass in a state-dependent anonymous callback object (TextureRegistry.SurfaceProducer.Callback).
+        // The flutter engine will invoke onSurfaceAvailable() or onSurfaceCleanup().
         prod.setCallback(object: TextureRegistry.SurfaceProducer.Callback {
             override fun onSurfaceAvailable() {
                 if (nativeHandle == 0L) {
