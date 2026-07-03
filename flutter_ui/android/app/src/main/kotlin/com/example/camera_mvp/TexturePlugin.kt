@@ -1,5 +1,6 @@
 package com.example.camera_mvp
 
+import android.util.Log
 import android.view.Surface
 import androidx.annotation.Keep
 import io.flutter.embedding.engine.plugins.FlutterPlugin
@@ -12,6 +13,7 @@ class TexturePlugin : FlutterPlugin {
     private var producer: TextureRegistry.SurfaceProducer? = null
     private var nativeHandle: Long = 0
 
+    
     private external fun nativeAttach(surface: Surface, width: Int, height: Int): Long
     private external fun nativeDetach(handle: Long)
 
@@ -24,6 +26,7 @@ class TexturePlugin : FlutterPlugin {
 
     // The binding parameter is a helper object provided by the FlutterEngine which unlocks necessary hooks to interact with textureRegistry.
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
+        //Log.d("TAG", "onAttachedToEngine WORKS")
         val targetWidth = 1920
         val targetHeight = 1080
 
@@ -32,11 +35,13 @@ class TexturePlugin : FlutterPlugin {
         producer = prod
 
         // Pass in a state-dependent anonymous callback object (TextureRegistry.SurfaceProducer.Callback).
-        // The flutter engine will invoke onSurfaceAvailable() or onSurfaceCleanup().
+        // The flutter engine will then invoke either onSurfaceAvailable() or onSurfaceCleanup().
         prod.setCallback(object: TextureRegistry.SurfaceProducer.Callback {
             override fun onSurfaceAvailable() {
+                //Log.d("TAG", "onSurfaceAvailable WORKS")
                 if (nativeHandle == 0L) {
                     nativeHandle = nativeAttach(prod.surface, targetWidth, targetHeight)
+                    println(nativeHandle)
                 }
             }
             override fun onSurfaceCleanup() {
@@ -61,6 +66,10 @@ class TexturePlugin : FlutterPlugin {
                         producer?.release()
                         producer = null
                         result.success(null)
+                    }
+                    "printid" -> {
+                        result.success(nativeHandle)
+                        println(nativeHandle)
                     }
                     else -> result.notImplemented()
                 }

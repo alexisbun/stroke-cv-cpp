@@ -48,7 +48,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(spdlog REQUIRED)
 
-add_library(${PROJECT_NAME} SHARED src/lib.cpp)
+add_library(${PROJECT_NAME} SHARED src/lib.cpp src/jni_native.cpp)
 
 find_library(android android)
 find_library(GLESv3 GLESv3)

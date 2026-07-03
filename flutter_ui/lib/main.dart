@@ -34,6 +34,7 @@ class Camera extends StatefulWidget {
 class _CameraState extends State<Camera> {
   static const _platform = MethodChannel('texture-backend');
   int? _textureID;
+  int? _handle;
 
   @override
   void initState() {
@@ -51,6 +52,7 @@ class _CameraState extends State<Camera> {
 
   Future<void> _initTexture() async {
     final int id = await _platform.invokeMethod('textureid');
+    final int handle = await _platform.invokeMethod('printid');
 
     if (!mounted) return;
     // Previous line protects app from crashing since setState() would not work.
@@ -62,6 +64,7 @@ class _CameraState extends State<Camera> {
 
     setState(() {
       _textureID = id;
+      _handle = handle;
     });
   }
 
@@ -119,6 +122,16 @@ class MainApp extends StatelessWidget {
     }
   }
 
+  Future<void> testGetNativeHandle() async {
+    const platform = MethodChannel('texture-backend');
+    try {
+      final int? nativehandle = await platform.invokeMethod<int>('printid');
+      print('Retrieved native handle id ID: $nativehandle');
+    } catch (e) {
+      print('Failed to retrieve handle: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -131,6 +144,10 @@ class MainApp extends StatelessWidget {
               ElevatedButton(
                 onPressed: testGetTextureID,
                 child: const Text("Texture ID is: "),
+              ),
+              ElevatedButton(
+                onPressed: testGetNativeHandle,
+                child: const Text("Handle is: "),
               ),
               AspectRatio(aspectRatio: 9 / 16, child: const Camera()),
             ],
