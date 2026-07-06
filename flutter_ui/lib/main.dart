@@ -7,21 +7,11 @@ import 'package:flutter/services.dart';
 
 import 'camera_bindings.dart' as bindings;
 
-// Fundementally, you need to include a file that contains a function
-// that will allow you to invoke a method from Java called
-// TextureRegistry.SurfaceProducer, in order for you to obtain the textureID
-// for the backend texture the Texture widget refers to.  This method will
-// create a SurfaceTexture which is the consumer of an
-// image buffer. The Surface object (from the SurfaceTexture: by invoking
-// .getSurface()), once registered and "bound" to the Texture widget can be
-// passed as an argument (in C++) to ANativeWindow_fromSurface().
-
-// ANativeWindow_fromSurface() generates a raw pointer to an object called
-// ANativeWindow. ANativeWindow is required to connect the raw pixel date
-// produced by the camera to the OpenGL External Texture. At a fundemental
-// level, ANativeWindow will serve as the connection between the Texture widget
-// and the OpenGL External Texture. All of the steps explained above are
-// required to initialize it.
+// import needed to handle Android camera permissions
+// import 'package:permission_handler/permission_handler.dart';
+// var status = await Permission.camera.request();
+// if status.isGranted -> init texture and run app normally
+// else - > a version of the app without AR features
 
 // CAMERA CLASS (will be in seperate file when migrating to working_ui)
 class Camera extends StatefulWidget {
@@ -34,7 +24,6 @@ class Camera extends StatefulWidget {
 class _CameraState extends State<Camera> {
   static const _platform = MethodChannel('texture-backend');
   int? _textureID;
-  int? _handle;
 
   @override
   void initState() {
@@ -52,7 +41,6 @@ class _CameraState extends State<Camera> {
 
   Future<void> _initTexture() async {
     final int id = await _platform.invokeMethod('textureid');
-    final int handle = await _platform.invokeMethod('printid');
 
     if (!mounted) return;
     // Previous line protects app from crashing since setState() would not work.
@@ -64,7 +52,6 @@ class _CameraState extends State<Camera> {
 
     setState(() {
       _textureID = id;
-      _handle = handle;
     });
   }
 
@@ -122,16 +109,6 @@ class MainApp extends StatelessWidget {
     }
   }
 
-  Future<void> testGetNativeHandle() async {
-    const platform = MethodChannel('texture-backend');
-    try {
-      final int? nativehandle = await platform.invokeMethod<int>('printid');
-      print('Retrieved native handle id ID: $nativehandle');
-    } catch (e) {
-      print('Failed to retrieve handle: $e');
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -144,10 +121,6 @@ class MainApp extends StatelessWidget {
               ElevatedButton(
                 onPressed: testGetTextureID,
                 child: const Text("Texture ID is: "),
-              ),
-              ElevatedButton(
-                onPressed: testGetNativeHandle,
-                child: const Text("Handle is: "),
               ),
               AspectRatio(aspectRatio: 9 / 16, child: const Camera()),
             ],

@@ -1,3 +1,24 @@
+/*
+This  file  contains  declarations  for  external  functions  
+to be  implemented  in  my  C++  library that will allow for 
+the invokation  of  TextureRegistry.SurfaceProducer.  This  
+will allow  me  to  obtain  the  textureID  for the backend 
+texture which  a  Texture  widget  refers  to.  nativeAttach 
+creates  a  Surface  which  is  the  consumer  of  an  
+image buffer.  The  Surface  object  (by  invoking .getSurface()),
+once  registered  and  "bound"  to  the  Texture  widget can
+be  passed  as  an  argument  to  ANativeWindow_fromSurface()
+inside my C++ library.
+
+ANativeWindow_fromSurface()  generates  a  raw pointer to an
+object   called  ANativeWindow.  ANativeWindow  is  required
+to  connect  the  raw  pixel  date  produced  by  the camera
+to  the  OpenGL  External  Texture.  At  a fundemental level,
+ANativeWindow  will  serve  as  the  connection  between the
+Texture widget and the OpenGL External Texture.
+*/
+
+
 package com.example.camera_mvp
 
 import android.util.Log
@@ -26,9 +47,8 @@ class TexturePlugin : FlutterPlugin {
 
     // The binding parameter is a helper object provided by the FlutterEngine which unlocks necessary hooks to interact with textureRegistry.
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
-        //Log.d("TAG", "onAttachedToEngine WORKS")
-        val targetWidth = 1920
-        val targetHeight = 1080
+        val targetWidth = 1280
+        val targetHeight = 720
 
         val prod = binding.textureRegistry.createSurfaceProducer()
         prod.setSize(targetWidth,targetHeight)
@@ -38,10 +58,8 @@ class TexturePlugin : FlutterPlugin {
         // The flutter engine will then invoke either onSurfaceAvailable() or onSurfaceCleanup().
         prod.setCallback(object: TextureRegistry.SurfaceProducer.Callback {
             override fun onSurfaceAvailable() {
-                //Log.d("TAG", "onSurfaceAvailable WORKS")
                 if (nativeHandle == 0L) {
                     nativeHandle = nativeAttach(prod.surface, targetWidth, targetHeight)
-                    println(nativeHandle)
                 }
             }
             override fun onSurfaceCleanup() {
@@ -66,10 +84,6 @@ class TexturePlugin : FlutterPlugin {
                         producer?.release()
                         producer = null
                         result.success(null)
-                    }
-                    "printid" -> {
-                        result.success(nativeHandle)
-                        println(nativeHandle)
                     }
                     else -> result.notImplemented()
                 }

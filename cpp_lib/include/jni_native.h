@@ -29,8 +29,4 @@ Java_com_example_camera_1mvp_TexturePlugin_nativeDetach(
     jlong handle
 );
 
-// ANativeWindow* ANativeWindow_fromSurface(JNIEnv* env, jobject surface);
-// void ANativeWindow_release(ANativeWindow* window);
-// int32_t ANativeWindow_setBuffersGeometry(ANativeWindow* window, int32_t width, int32_t height, int32_t format); // Use hardware_buffer.h for 'format' param 
-// // (https://android.googlesource.com/platform/frameworks/native/+/master/libs/nativewindow/include/android/hardware_buffer.h).
 }
