@@ -48,16 +48,20 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(spdlog REQUIRED)
 
-add_library(${PROJECT_NAME} SHARED src/lib.cpp src/jni_native.cpp src/camera_engine.cpp src/ndk_camera.cpp)
+add_library(${PROJECT_NAME} SHARED src/lib.cpp src/jni_native.cpp src/camera_engine.cpp src/ndk_camera.cpp src/egl_utlils.cpp)
 
 find_library(android android)
 find_library(GLESv3 GLESv3)
 find_library(camera2ndk camera2ndk)
+find_library(mediandk mediandk)
+find_library(EGL EGL)
 
 target_link_libraries(${PROJECT_NAME}
         spdlog::spdlog
         ${android}
         ${GLESv3}
+        ${EGL}        
+        ${mediandk}  
         ${camera2ndk}
 )
 

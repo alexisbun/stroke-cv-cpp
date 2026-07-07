@@ -7,6 +7,12 @@
 #include <camera/NdkCameraCaptureSession.h>
 #include <camera/NdkCaptureRequest.h>
 
+#include <media/NdkImageReader.h>
+#include <media/NdkImage.h>
+
+
+#include "camera_engine.h"
+
 #include <map>
 #include <string>
 #include <vector>
@@ -33,12 +39,13 @@ private:
     ACameraManager *cameraManager_;
     ACameraDevice *cameraDevice_;
     ACameraCaptureSession *captureSession_;
-    ACaptureSessionOutputContainer *outputContainer;
+    ACaptureSessionOutputContainer *outputContainer_;
 
     ANativeWindow *ndkWindow_;
+    AImageReader* imageReader_;
     ACaptureSessionOutput *captureOutput_;
-    ACameraOutputTarget *outputTarget;
-    ACaptureRequest *captureRequest;
+    ACameraOutputTarget *outputTarget_;
+    ACaptureRequest *captureRequest_;
 
     std::string frontCameraId_;
     std::string backCameraId_;

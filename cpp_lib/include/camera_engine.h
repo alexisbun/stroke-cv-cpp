@@ -1,5 +1,6 @@
 #pragma once
 #include <android/native_window.h>
+#include "ndk_camera.h"
 
 class CameraEngine
 {
@@ -13,6 +14,7 @@ public:
     int32_t GetFormat() const { return format_; }
 
 private:
+    NDKCamera* ndkCamera_;
     ANativeWindow *window_;
     int32_t width_;
     int32_t height_;
