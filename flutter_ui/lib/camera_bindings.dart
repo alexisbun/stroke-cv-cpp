@@ -47,15 +47,4 @@ class CameraBindings {
         'multiply',
       );
   late final _multiply = _multiplyPtr.asFunction<int Function(int, int)>();
-
-  int initOpenGLExternalTexture() {
-    return _initOpenGLExternalTexture();
-  }
-
-  late final _initOpenGLExternalTexturePtr =
-      _lookup<ffi.NativeFunction<ffi.UnsignedInt Function()>>(
-        'initOpenGLExternalTexture',
-      );
-  late final _initOpenGLExternalTexture = _initOpenGLExternalTexturePtr
-      .asFunction<int Function()>();
 }

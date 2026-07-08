@@ -1,24 +1,26 @@
 #include "jni_native.h"
 #include "camera_engine.h"
 
-#include <android/log.h>
-#define LOG_TAG "CameraMVP_Native"
-#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
-
-JNIEXPORT jlong JNICALL
-Java_com_example_camera_1mvp_TexturePlugin_nativeAttach(
+jlong nativeAttach(
     JNIEnv *env,
-    jobject thiz,
+    jobject thiz, 
     jobject surface,
     jint width,
     jint height)
 {
-    LOGI("JNI: nativeAttach called. Surface address: %p", surface);
+    auto android_logger = spdlog::android_logger_mt("stroke_cv_logger", "StrokeCV_Native");
+    spdlog::set_default_logger(android_logger);
+    spdlog::set_pattern("%v");
+    spdlog::set_level(spdlog::level::debug);
+    spdlog::info("spdlog initialized successfully via nativeAttach");
+    spdlog::info("Native attach called");
+
     ANativeWindow *window = ANativeWindow_fromSurface(env, surface);
     if (window == nullptr)
     {
         return 0; // Indicates failure to connect to JNI.
     }
+    spdlog::info("Window obtained");
 
     int32_t format = AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM;
 
@@ -31,16 +33,18 @@ Java_com_example_camera_1mvp_TexturePlugin_nativeAttach(
     }
 
     CameraEngine *engine = new CameraEngine(window, width, height, format);
+    spdlog::info("CameraEngine created");
 
-    return reinterpret_cast<jlong>(engine); // force JNI to treat CameraEngine memory address as a 'jlong' (i.e. 64-bit integer)
+    return reinterpret_cast<jlong>(engine); // treat CameraEngine memory address as a 64-bit integer
 }
 
-JNIEXPORT void JNICALL
-Java_com_example_camera_1mvp_TexturePlugin_nativeDetach(
-    JNIEnv *env,
-    jobject thiz,
+// C++ Implementation of nativeDetach
+void nativeDetach(
+    JNIEnv * env,   
+    jobject thiz,  
     jlong handle)
 {
+    spdlog::info("native detach invoked");
     if (handle == 0)
     {
         return;
@@ -50,3 +54,49 @@ Java_com_example_camera_1mvp_TexturePlugin_nativeDetach(
     delete engine;
 }
 
+// Method mapping table registering Kotlin/Java method names and signatures
+static const JNINativeMethod gMethods[] = {
+    {
+        "nativeAttach",
+        "(Landroid/view/Surface;II)J", 
+        (void*)nativeAttach
+    },
+    {
+        "nativeDetach",
+        "(J)V",                        
+        (void*)nativeDetach
+    }
+};
+
+// Implement JNI_OnLoad to dynamically register native methods
+JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* reserved)
+{
+    (void)reserved; // Suppress unused parameter warning
+    
+    JNIEnv *env = nullptr;
+    if (vm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_6) != JNI_OK)
+    {
+        return JNI_ERR;
+    }
+
+    // Find the class where the 'external' methods are declared
+    jclass clazz = env->FindClass("com/example/camera_mvp/TexturePlugin");
+    if (clazz == nullptr)
+    {
+        return JNI_ERR;
+    }
+
+    // Bind methods dynamically
+    jint rc = env->RegisterNatives(
+        clazz,
+        gMethods,
+        sizeof(gMethods) / sizeof(gMethods[0])
+    );
+
+    if (rc < 0)
+    {
+        return JNI_ERR;
+    }
+
+    return JNI_VERSION_1_6;
+}

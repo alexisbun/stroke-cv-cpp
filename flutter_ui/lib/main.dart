@@ -14,6 +14,7 @@ import 'package:permission_handler/permission_handler.dart';
 // else - > a version of the app without AR features
 
 // CAMERA CLASS (will be in seperate file when migrating to working_ui)
+
 class Camera extends StatefulWidget {
   const Camera({super.key});
 
@@ -95,14 +96,15 @@ class MainApp extends StatelessWidget {
     final camera = bindings.CameraBindings(nativeLib);
     final int result = camera.sum(20, 10);
     final int multiply = camera.multiply(3, 4);
-    final gpu = camera.initOpenGLExternalTexture();
     print("Sum result: ${result}");
     print("Multiply result: ${multiply}");
-    print(gpu);
     print(result);
   }
 
   Future<void> testGetTextureID() async {
+    //final ffi.DynamicLibrary nativeLib = _loadDynamicLibrary();
+    //final camera = bindings.CameraBindings(nativeLib);
+    //camera.init_native_logging();
     const platform = MethodChannel('texture-backend');
     try {
       final int? textureid = await platform.invokeMethod<int>('textureid');

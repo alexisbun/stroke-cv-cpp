@@ -1,10 +1,8 @@
 #include "camera_engine.h"
 #include "ndk_camera.h"
 
-#include <android/log.h>
-#define LOG_TAG "CameraMVP_Engine"
-#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
-#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
+#include <spdlog/spdlog.h>
+#include <utils.h>
 
 CameraEngine::CameraEngine(ANativeWindow *window, int32_t width, int32_t height, int32_t format)
     : ndkCamera_(nullptr), 
@@ -18,6 +16,7 @@ CameraEngine::CameraEngine(ANativeWindow *window, int32_t width, int32_t height,
       pendingImage_(nullptr),
       pendingBuffer_(nullptr)
 {
+    utils::init_native_logging();
     if (displayWindow_ != nullptr) {
         ANativeWindow_acquire(displayWindow_);
     }
@@ -49,19 +48,17 @@ CameraEngine::~CameraEngine()
 void CameraEngine::renderLoop() 
 {
 
-    LOGI("Render thread started.");
-    if (!eglManager_.InitializeEGL(displayWindow_)) {
-        LOGE("EGL Initialization failed!");  // Boot EGL display/context on the rendering thread.
+    spdlog::info("Render thread started.");
+    if (!eglManager_.InitializeEGL(displayWindow_)) { // Boot EGL display/context on the rendering thread.
         return; // early return if it fails
     }
-    LOGI("EGL Initialized successfully.");
     textureId_ = eglManager_.InitGLExternalTexture(); // Generate external texture and assign the texture ID to textureId_.
     if (!readerHandler_.InitReader(width_, height_)) { // Instantiates AImageReader image buffer queue.
-        LOGE("ImageReader Initialization failed!");
+        spdlog::error("EGL Initialization failed!");
         eglManager_.ReleaseEGL();
         return;
     }
-    LOGI("ImageReader Initialized successfully.");
+    spdlog::info("JNI: nativeAttach called. Surface address: {}", (void*)displayWindow_);
     AImageReader_ImageListener listener;
     listener.context = this;
     listener.onImageAvailable = [](void* context, AImageReader* reader) {
