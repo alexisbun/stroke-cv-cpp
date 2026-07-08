@@ -4,6 +4,7 @@
 #include <camera/NdkCameraMetadata.h>
 #include <camera/NdkCameraCaptureSession.h>
 #include <camera/NdkCaptureRequest.h>
+#include <android/native_window.h>
 
 #include <media/NdkImageReader.h>
 #include <media/NdkImage.h>

@@ -79,11 +79,40 @@ bool EGLManager::InitializeEGL(ANativeWindow* window)
         return false;
     }
 
+    if (!InitShaders()) {
+        return false;
+    }
+
     return true; // success, EGL initilized.
 }
 
 void EGLManager::ReleaseEGL()
 {
+    if (display_ != EGL_NO_DISPLAY && context_ != EGL_NO_CONTEXT) {
+        eglMakeCurrent(display_, surface_, surface_, context_);
+        
+        if (programId_ != 0) {
+            glDeleteProgram(programId_);
+            programId_ = 0;
+        }
+        if (vao_ != 0) {
+            glDeleteVertexArrays(1, &vao_);
+            vao_ = 0;
+        }
+        if (vbo_ != 0) {
+            glDeleteBuffers(1, &vbo_);
+            vbo_ = 0;
+        }
+    }
+
+    if (display_ != EGL_NO_DISPLAY) {
+        eglMakeCurrent(display_, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+        eglDestroySurface(display_, surface_);
+        eglDestroyContext(display_, context_);
+        eglTerminate(display_);
+        display_ = EGL_NO_DISPLAY;
+    }
+
     if (display_ != EGL_NO_DISPLAY) {
         eglMakeCurrent(display_, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
         eglDestroySurface(display_, surface_);
@@ -189,4 +218,52 @@ bool EGLManager::loadExtentions()
                         (fn_glEGLImageTargetTexture2DOES != nullptr);
 
     return extensionsLoaded_;
+}
+
+// Utilities to preview camera with OpenGL.
+
+bool EGLManager::InitShaders() {
+    GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vertexShader, 1, &Shaders::VERTEX_SOURCE, nullptr);
+    glCompileShader(vertexShader);
+    GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragmentShader, 1, &Shaders::FRAGMENT_SOURCE, nullptr);
+    glCompileShader(fragmentShader);
+    programId_ = glCreateProgram();
+    glAttachShader(programId_, vertexShader);
+    glAttachShader(programId_, fragmentShader);
+    glLinkProgram(programId_);
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
+    textureUniformLocation_ = glGetUniformLocation(programId_, "u_texture");
+    float quadVertices[] = {
+        // Position    // Tex Coordinates
+        -1.0f, -1.0f,  1.0f, 1.0f,
+         1.0f, -1.0f,  1.0f, 0.0f,
+        -1.0f,  1.0f,  0.0f, 1.0f,
+         1.0f,  1.0f,  0.0f, 0.0f,
+    };
+    glGenVertexArrays(1, &vao_);
+    glGenBuffers(1, &vbo_);
+    glBindVertexArray(vao_);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo_);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+    glBindVertexArray(0);
+    return true;
+}
+
+
+void EGLManager::DrawTexture(GLuint textureId) {
+    glClear(GL_COLOR_BUFFER_BIT);
+    glUseProgram(programId_);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_EXTERNAL_OES, textureId);
+    glUniform1i(textureUniformLocation_, 0);
+    glBindVertexArray(vao_);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    glBindVertexArray(0);
 }

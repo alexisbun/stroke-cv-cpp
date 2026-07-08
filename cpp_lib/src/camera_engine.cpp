@@ -1,6 +1,11 @@
 #include "camera_engine.h"
 #include "ndk_camera.h"
 
+#include <android/log.h>
+#define LOG_TAG "CameraMVP_Engine"
+#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
+#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
+
 CameraEngine::CameraEngine(ANativeWindow *window, int32_t width, int32_t height, int32_t format)
     : ndkCamera_(nullptr), 
       displayWindow_(window),
@@ -43,14 +48,20 @@ CameraEngine::~CameraEngine()
 
 void CameraEngine::renderLoop() 
 {
-    if (!eglManager_.InitializeEGL(displayWindow_)) { // Boot EGL display/context on the rendering thread.
+
+    LOGI("Render thread started.");
+    if (!eglManager_.InitializeEGL(displayWindow_)) {
+        LOGE("EGL Initialization failed!");  // Boot EGL display/context on the rendering thread.
         return; // early return if it fails
     }
+    LOGI("EGL Initialized successfully.");
     textureId_ = eglManager_.InitGLExternalTexture(); // Generate external texture and assign the texture ID to textureId_.
     if (!readerHandler_.InitReader(width_, height_)) { // Instantiates AImageReader image buffer queue.
+        LOGE("ImageReader Initialization failed!");
         eglManager_.ReleaseEGL();
         return;
     }
+    LOGI("ImageReader Initialized successfully.");
     AImageReader_ImageListener listener;
     listener.context = this;
     listener.onImageAvailable = [](void* context, AImageReader* reader) {
@@ -81,6 +92,7 @@ void CameraEngine::renderLoop()
         if (localImage != nullptr && localBuffer != nullptr) {
             EGLImageKHR image = eglManager_.BindHardwareBuffer(localBuffer, textureId_);
             if (image != EGL_NO_IMAGE_KHR) {
+                eglManager_.DrawTexture(textureId_);
                 eglManager_.SwapBuffers();
                 eglManager_.UnbindHardwareBuffer(image);
             }

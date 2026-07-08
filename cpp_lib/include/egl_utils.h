@@ -24,7 +24,10 @@ class EGLManager
         EGLImageKHR BindHardwareBuffer(AHardwareBuffer* buffer, GLuint textureId);
         void UnbindHardwareBuffer(EGLImageKHR image);
         void SwapBuffers();
-    
+
+        bool InitShaders();
+        void DrawTexture(GLuint textureId);
+
     private:
         EGLDisplay display_;
         EGLConfig config_;
@@ -34,4 +37,39 @@ class EGLManager
         bool extensionsLoaded_;
 
         bool loadExtentions();
+
+        GLuint programId_ = 0;
+        GLuint vao_ = 0;
+        GLuint vbo_ = 0;
+        GLint textureUniformLocation_ = -1;
 };
+
+struct Shaders
+{
+    static constexpr const char* VERTEX_SOURCE = R"glsl(
+        #version 300 es
+        layout(location = 0) in vec4 position;
+        layout(location = 1) in vec2 texCoords;
+        out vec2 v_texCoords;
+        void main() {
+            gl_Position = position;
+            v_texCoords = texCoords;
+        }
+    )glsl";
+
+    static constexpr const char* FRAGMENT_SOURCE = R"glsl(
+        #version 300 es
+        #extension GL_OES_EGL_image_external_essl3 : require
+        precision mediump float;
+        in vec2 v_texCoords;
+        out vec4 outColor;
+        uniform samplerExternalOES u_texture;
+        void main() {
+            outColor = texture(u_texture, v_texCoords);
+        }
+    )glsl";
+}; 
+// With mediapipe integration, change uniform 'samplerExternalOES u_texture' to 'uniform sampler2D u_texture'
+// because mediapipe uses GL_TEXTURE_2D as its texture format.
+
+

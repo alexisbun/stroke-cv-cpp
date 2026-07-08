@@ -1,6 +1,10 @@
 #include "jni_native.h"
 #include "camera_engine.h"
 
+#include <android/log.h>
+#define LOG_TAG "CameraMVP_Native"
+#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
+
 JNIEXPORT jlong JNICALL
 Java_com_example_camera_1mvp_TexturePlugin_nativeAttach(
     JNIEnv *env,
@@ -9,6 +13,7 @@ Java_com_example_camera_1mvp_TexturePlugin_nativeAttach(
     jint width,
     jint height)
 {
+    LOGI("JNI: nativeAttach called. Surface address: %p", surface);
     ANativeWindow *window = ANativeWindow_fromSurface(env, surface);
     if (window == nullptr)
     {
@@ -44,3 +49,4 @@ Java_com_example_camera_1mvp_TexturePlugin_nativeDetach(
     CameraEngine *engine = reinterpret_cast<CameraEngine *>(handle);
     delete engine;
 }
+
