@@ -58,8 +58,11 @@ class TexturePlugin : FlutterPlugin {
         // The flutter engine will then invoke either onSurfaceAvailable() or onSurfaceCleanup().
         prod.setCallback(object: TextureRegistry.SurfaceProducer.Callback {
             override fun onSurfaceAvailable() {
+                Log.d("CameraMVP", "onSurfaceAvailable triggered! Surface status: ${prod.surface.isValid}")
                 if (nativeHandle == 0L) {
+                    Log.d("CameraMVP", "Calling nativeAttach...")
                     nativeHandle = nativeAttach(prod.surface, targetWidth, targetHeight)
+                    Log.d("CameraMVP", "nativeAttach completed. Handle returned: $nativeHandle")
                 }
             }
             override fun onSurfaceCleanup() {
