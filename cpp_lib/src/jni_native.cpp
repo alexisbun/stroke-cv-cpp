@@ -15,7 +15,7 @@ Java_com_example_camera_1mvp_TexturePlugin_nativeAttach(
         return 0; // Indicates failure to connect to JNI.
     }
 
-    int32_t format = AHARDWAREBUFFER_FORMAT_Y8Cb8Cr8_420;
+    int32_t format = AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM;
 
     int32_t status = ANativeWindow_setBuffersGeometry(window, width, height, format); // Returns 0 on success and negative value on error.
     if (status < 0)

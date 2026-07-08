@@ -1,0 +1,192 @@
+#include "egl_utils.h"
+
+PFNEGLGETNATIVECLIENTBUFFERANDROIDPROC fn_eglGetNativeClientBufferANDROID = nullptr;
+PFNEGLCREATEIMAGEKHRPROC fn_eglCreateImageKHR = nullptr;
+PFNEGLDESTROYIMAGEKHRPROC fn_eglDestroyImageKHR = nullptr;
+PFNGLEGLIMAGETARGETTEXTURE2DOESPROC fn_glEGLImageTargetTexture2DOES = nullptr;
+
+// initilize all EGL state variables to default or null values
+EGLManager::EGLManager()
+    : display_(EGL_NO_DISPLAY),
+      config_(nullptr),
+      context_(EGL_NO_CONTEXT),
+      surface_(EGL_NO_SURFACE),
+      nativeWindow_(nullptr),
+      extensionsLoaded_(false)
+{
+}
+
+EGLManager::~EGLManager()
+{
+    ReleaseEGL();
+}
+
+// initilize EGL state variables and map to surface obtainted from Flutter.
+bool EGLManager::InitializeEGL(ANativeWindow* window)
+{
+    if (window == nullptr) {
+        return false;
+    }
+
+    nativeWindow_ = window;
+    ANativeWindow_acquire(nativeWindow_);
+
+    display_ = eglGetDisplay(EGL_DEFAULT_DISPLAY); // standard system graphics display driver
+    if (display_ == EGL_NO_DISPLAY) {
+        return false;
+    }
+
+    EGLint major, minor;
+    if (!eglInitialize(display_, &major, &minor)) { // initialize egl interface on the display
+        return false;
+    }
+
+    const EGLint attributeList[] = { // frame buffer formating specification attributes
+        EGL_RENDERABLE_TYPE, EGL_OPENGL_ES3_BIT_KHR,
+        EGL_RED_SIZE, 8,
+        EGL_GREEN_SIZE, 8,
+        EGL_BLUE_SIZE, 8, 
+        EGL_ALPHA_SIZE, 8, 
+        EGL_DEPTH_SIZE, 0,
+        EGL_NONE
+    };
+
+    EGLint numConfigs;
+    if (!eglChooseConfig(display_, attributeList, &config_, 1, &numConfigs) || numConfigs < 1) {
+        return false;
+    }
+
+    const EGLint contextAttributes[] = {
+        EGL_CONTEXT_CLIENT_VERSION, 3,
+        EGL_NONE
+    };
+
+    context_ = eglCreateContext(display_, config_, EGL_NO_CONTEXT, contextAttributes);
+    if (context_ == EGL_NO_CONTEXT) {
+        return false;
+    }
+
+    surface_ = eglCreateWindowSurface(display_, config_, nativeWindow_, nullptr); // 
+    if (surface_ == EGL_NO_SURFACE) {
+        return false;
+    }
+
+    if (!eglMakeCurrent(display_, surface_, surface_, context_)) {
+        return false;
+    }
+
+    if(!loadExtentions()) {
+        return false;
+    }
+
+    return true; // success, EGL initilized.
+}
+
+void EGLManager::ReleaseEGL()
+{
+    if (display_ != EGL_NO_DISPLAY) {
+        eglMakeCurrent(display_, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+        eglDestroySurface(display_, surface_);
+        eglDestroyContext(display_, context_);
+        eglTerminate(display_);
+        display_ = EGL_NO_DISPLAY;
+    }
+
+    if (nativeWindow_ != nullptr) {
+        ANativeWindow_release(nativeWindow_);
+        nativeWindow_ = nullptr;
+    }
+
+    surface_ = EGL_NO_SURFACE;
+    context_ = EGL_NO_CONTEXT;
+    config_ = nullptr;
+    extensionsLoaded_ = false;
+}
+
+GLuint EGLManager::InitGLExternalTexture()
+{
+    GLuint textureId = 0; // implementation note: typedef unsigned int GLuint;-> GLuint is a unsigned integer value
+
+    glGenTextures(1, &textureId);                      // generate name/ID for texture object
+    glBindTexture(GL_TEXTURE_EXTERNAL_OES, textureId); // bind external texture to current texture object
+
+    // configure texture properties / sampling parameters (mandatory fields)
+    glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    return textureId;
+}
+
+// Connect AHardwareBuffer (Android) to GL_TEXTURE_EXTERNAL_OES (OpenGL)
+EGLImageKHR EGLManager::BindHardwareBuffer(AHardwareBuffer* buffer, GLuint textureId)
+{
+    if (!extensionsLoaded_ || buffer == nullptr) {
+        return EGL_NO_IMAGE_KHR;
+    }
+
+    EGLClientBuffer clientBuffer = fn_eglGetNativeClientBufferANDROID(buffer); // wrap AHardwareBuffer into EGLClientBuffer wrapper.
+    if (clientBuffer == nullptr) {
+        return EGL_NO_IMAGE_KHR;
+    }
+
+    EGLint attributes[] = {EGL_IMAGE_PRESERVED_KHR, EGL_TRUE, EGL_NONE}; // params to ensure pixel contents are preserved in buffer
+
+    EGLImageKHR image = fn_eglCreateImageKHR(
+        display_,
+        EGL_NO_CONTEXT,
+        EGL_NATIVE_BUFFER_ANDROID,
+        clientBuffer,
+        attributes
+    );
+
+    if (image == EGL_NO_IMAGE_KHR) {
+        return EGL_NO_IMAGE_KHR;
+    }
+    glBindTexture(GL_TEXTURE_EXTERNAL_OES, textureId);
+    fn_glEGLImageTargetTexture2DOES(GL_TEXTURE_EXTERNAL_OES, image); // -> this function allows the zero-copy memory transfer in my pipeline
+    // directs GL_TEXTURE_EXTERNAL_OES to read pixel data directly from the area of memory the camera is streaming to
+
+    return image; // returns EGLImageKHR handle
+}
+
+void EGLManager::UnbindHardwareBuffer(EGLImageKHR image)
+{
+    if (extensionsLoaded_ && image != EGL_NO_IMAGE_KHR) {
+        fn_eglDestroyImageKHR(display_, image);
+    }
+}
+
+void EGLManager::SwapBuffers()
+{
+    if (display_ != EGL_NO_DISPLAY && surface_ != EGL_NO_SURFACE) {
+        eglSwapBuffers(display_, surface_);
+    }
+}
+
+bool EGLManager::loadExtentions()
+{
+    fn_eglGetNativeClientBufferANDROID = reinterpret_cast<PFNEGLGETNATIVECLIENTBUFFERANDROIDPROC>(
+        eglGetProcAddress("eglGetNativeClientBufferANDROID")
+    );
+    
+    fn_eglCreateImageKHR = reinterpret_cast<PFNEGLCREATEIMAGEKHRPROC>(
+        eglGetProcAddress("eglCreateImageKHR")
+    );
+    
+    fn_eglDestroyImageKHR = reinterpret_cast<PFNEGLDESTROYIMAGEKHRPROC>(
+        eglGetProcAddress("eglDestroyImageKHR")
+    );
+    
+    fn_glEGLImageTargetTexture2DOES = reinterpret_cast<PFNGLEGLIMAGETARGETTEXTURE2DOESPROC>(
+        eglGetProcAddress("glEGLImageTargetTexture2DOES")
+    );
+
+    extensionsLoaded_ = (fn_eglGetNativeClientBufferANDROID != nullptr) &&
+                        (fn_eglCreateImageKHR != nullptr) &&
+                        (fn_eglDestroyImageKHR != nullptr) &&
+                        (fn_glEGLImageTargetTexture2DOES != nullptr);
+
+    return extensionsLoaded_;
+}

@@ -1,8 +1,6 @@
 #pragma once
 #include <camera/NdkCameraDevice.h>
-#include <camera/NdkCameraError.h>
 #include <camera/NdkCameraManager.h>
-#include <camera/NdkCameraMetadataTags.h>
 #include <camera/NdkCameraMetadata.h>
 #include <camera/NdkCameraCaptureSession.h>
 #include <camera/NdkCaptureRequest.h>
@@ -10,10 +8,6 @@
 #include <media/NdkImageReader.h>
 #include <media/NdkImage.h>
 
-
-#include "camera_engine.h"
-
-#include <map>
 #include <string>
 #include <vector>
 
@@ -30,8 +24,9 @@ public:
     NDKCamera();
     ~NDKCamera();
     void EnumerateCamera();                    // Enumerate through camera's and select which to use.
-    void CreateSession(ANativeWindow *window); // Calls ACameraDevice_createCaptureSession() to begin using user's camera.
+    void CreateSession(ANativeWindow *window); // Will pass the AImageReader's window here
     void StartPreview(bool start);
+
     ACameraDevice_stateCallbacks *GetDeviceListener();
     ACameraCaptureSession_stateCallbacks *GetSessionListener();
 
@@ -41,8 +36,7 @@ private:
     ACameraCaptureSession *captureSession_;
     ACaptureSessionOutputContainer *outputContainer_;
 
-    ANativeWindow *ndkWindow_;
-    AImageReader* imageReader_;
+    ANativeWindow *readerWindow_;
     ACaptureSessionOutput *captureOutput_;
     ACameraOutputTarget *outputTarget_;
     ACaptureRequest *captureRequest_;
@@ -54,6 +48,5 @@ private:
     uint32_t cameraOrientation_;
 
     bool isStreaming_;
-
     CaptureSessionState cameraState_;
 };

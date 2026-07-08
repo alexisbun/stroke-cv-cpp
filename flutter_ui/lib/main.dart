@@ -8,7 +8,7 @@ import 'package:flutter/services.dart';
 import 'camera_bindings.dart' as bindings;
 
 // import needed to handle Android camera permissions
-// import 'package:permission_handler/permission_handler.dart';
+import 'package:permission_handler/permission_handler.dart';
 // var status = await Permission.camera.request();
 // if status.isGranted -> init texture and run app normally
 // else - > a version of the app without AR features
@@ -40,19 +40,22 @@ class _CameraState extends State<Camera> {
   }
 
   Future<void> _initTexture() async {
-    final int id = await _platform.invokeMethod('textureid');
+    var status = await Permission.camera.request();
+    if (status.isGranted) {
+      final int id = await _platform.invokeMethod('textureid');
+      if (!mounted) return;
+      setState(() {
+        _textureID = id;
+      });
+    }
+    // if status.isGranted -> init texture and run app normally
 
-    if (!mounted) return;
     // Previous line protects app from crashing since setState() would not work.
     // If we leave the screen (exit the app, press the "back button" or navigate)
     // before await _platform.invokeMethod('textureid') completes, then the
     // widget would be destroyed and this exception would be thrown since the
     // execution thread would still continue without textureid initialized:
     // Unhandled Exception State.setState() called after dispose().
-
-    setState(() {
-      _textureID = id;
-    });
   }
 
   @override
