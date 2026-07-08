@@ -1,3 +1,5 @@
+// TEST NO-KOTLIN BRANCH
+
 #pragma once
 #include <android/native_window.h>
 #include <media/NdkImage.h>
