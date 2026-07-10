@@ -134,7 +134,7 @@ void EGLManager::ReleaseEGL()
 
 GLuint EGLManager::InitGLExternalTexture()
 {
-    GLuint textureId = 0; // implementation note: typedef unsigned int GLuint;-> GLuint is a unsigned integer value
+    GLuint textureId = 0; 
 
     glGenTextures(1, &textureId);                      // generate name/ID for texture object
     glBindTexture(GL_TEXTURE_EXTERNAL_OES, textureId); // bind external texture to current texture object
@@ -220,8 +220,6 @@ bool EGLManager::loadExtentions()
     return extensionsLoaded_;
 }
 
-// Utilities to preview camera with OpenGL.
-
 bool EGLManager::InitShaders() {
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertexShader, 1, &Shaders::VERTEX_SOURCE, nullptr);
@@ -237,11 +235,10 @@ bool EGLManager::InitShaders() {
     glDeleteShader(fragmentShader);
     textureUniformLocation_ = glGetUniformLocation(programId_, "u_texture");
     float quadVertices[] = {
-        // Position    // Tex Coordinates
-        -1.0f, -1.0f,  1.0f, 1.0f,
-         1.0f, -1.0f,  1.0f, 0.0f,
-        -1.0f,  1.0f,  0.0f, 1.0f,
-         1.0f,  1.0f,  0.0f, 0.0f,
+        -1.0f, -1.0f,  0.0f, 1.0f,
+         1.0f, -1.0f,  0.0f, 0.0f,
+        -1.0f,  1.0f,  1.0f, 1.0f,
+         1.0f,  1.0f,  1.0f, 0.0f,
     };
     glGenVertexArrays(1, &vao_);
     glGenBuffers(1, &vbo_);

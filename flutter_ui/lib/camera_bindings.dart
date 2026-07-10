@@ -19,32 +19,49 @@ class CameraBindings {
     ffi.Pointer<T> Function<T extends ffi.NativeType>(String symbolName) lookup,
   ) : _lookup = lookup;
 
-  void print(ffi.Pointer<ffi.Char> message) {
-    return _print(message);
+  int nativeAttach(
+    ffi.Pointer<ffi.Void> env,
+    ffi.Pointer<ffi.Void> surface,
+    int width,
+    int height,
+  ) {
+    return _nativeAttach(env, surface, width, height);
   }
 
-  late final _printPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Char>)>>(
-        'print',
+  late final _nativeAttachPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.LongLong Function(
+            ffi.Pointer<ffi.Void>,
+            ffi.Pointer<ffi.Void>,
+            ffi.Int,
+            ffi.Int,
+          )
+        >
+      >('nativeAttach');
+  late final _nativeAttach = _nativeAttachPtr
+      .asFunction<
+        int Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Void>, int, int)
+      >();
+
+  void nativeDetach(int engineHandle) {
+    return _nativeDetach(engineHandle);
+  }
+
+  late final _nativeDetachPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.LongLong)>>(
+        'nativeDetach',
       );
-  late final _print = _printPtr
-      .asFunction<void Function(ffi.Pointer<ffi.Char>)>();
+  late final _nativeDetach = _nativeDetachPtr.asFunction<void Function(int)>();
 
-  int sum(int a, int b) {
-    return _sum(a, b);
+  double getEngineFps(int engineHandle) {
+    return _getEngineFps(engineHandle);
   }
 
-  late final _sumPtr =
-      _lookup<ffi.NativeFunction<ffi.Int Function(ffi.Int, ffi.Int)>>('sum');
-  late final _sum = _sumPtr.asFunction<int Function(int, int)>();
-
-  int multiply(int a, int b) {
-    return _multiply(a, b);
-  }
-
-  late final _multiplyPtr =
-      _lookup<ffi.NativeFunction<ffi.Int Function(ffi.Int, ffi.Int)>>(
-        'multiply',
+  late final _getEngineFpsPtr =
+      _lookup<ffi.NativeFunction<ffi.Double Function(ffi.LongLong)>>(
+        'getEngineFps',
       );
-  late final _multiply = _multiplyPtr.asFunction<int Function(int, int)>();
+  late final _getEngineFps = _getEngineFpsPtr
+      .asFunction<double Function(int)>();
 }

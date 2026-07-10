@@ -19,6 +19,7 @@
 #include "lib.h"
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/android_sink.h>
+#include "camera_engine.h"
 
 int sum(int a, int b)
 {
@@ -27,5 +28,13 @@ int sum(int a, int b)
 int multiply(int a, int b)
 {
     return a * b;
+}
+
+extern "C" double getEngineFps(long long engineHandle) {
+    if (engineHandle == 0) {
+        return 0.0;
+    }
+    CameraEngine *engine = reinterpret_cast<CameraEngine *>(engineHandle);
+    return engine->GetFps(); 
 }
 

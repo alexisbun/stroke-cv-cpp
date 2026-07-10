@@ -1,0 +1,12 @@
+android_sdk_config:
+  add_gradle_deps: true
+
+output:
+  dart:
+    path: lib/generated/android_graphics.g.dart
+    structure: single_file
+
+classes:
+  - 'android.graphics.SurfaceTexture'
+  - 'android.view.Surface'
+  - 'io.flutter.view.TextureRegistry'

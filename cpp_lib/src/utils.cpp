@@ -5,14 +5,9 @@
 
 void utils::init_native_logging() {
     try {
-        // Create the Android sink logger
         auto android_logger = spdlog::android_logger_mt("stroke_cv_logger", "StrokeCV_Native");
         spdlog::set_default_logger(android_logger);
-        
-        // Setup raw pattern formatting (removes duplicate spdlog timestamps/metadata)
         spdlog::set_pattern("%v");
-        
-        // Set default minimum severity level
         spdlog::set_level(spdlog::level::debug);
         
         spdlog::info("spdlog initialized successfully via init_native_logging!");

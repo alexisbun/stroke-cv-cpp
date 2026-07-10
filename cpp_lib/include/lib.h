@@ -1,18 +1,11 @@
-// #include <iostream>
-// #include <spdlog/spdlog.h>
-// #include <spdlog/sinks/android_sink.h>
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void print(const char* message);
-int sum(int a, int b);
-int multiply(int a, int b);
-
+long long nativeAttach(void *env, void *surface, int width, int height);
+void nativeDetach(long long engineHandle);
+double getEngineFps(long long engineHandle);
 
 #ifdef __cplusplus
 }
-
 #endif
