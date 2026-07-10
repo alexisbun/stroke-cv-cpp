@@ -124,6 +124,35 @@ void NDKCamera::EnumerateCamera()
         return;
     }
 
+    ACameraMetadata* chars = nullptr;
+    camera_status_t charsStatus = ACameraManager_getCameraCharacteristics(
+        cameraManager_,
+        activeId.c_str(), &chars
+    );
+
+    bool is60FpsSupported = false;
+    if (charsStatus == ACAMERA_OK && chars != nullptr) {
+        ACameraMetadata_const_entry fpsEntry;
+        camera_status_t status = ACameraMetadata_getConstEntry(
+            chars,
+            ACAMERA_CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES,
+            &fpsEntry
+        );
+
+        if (status == ACAMERA_OK) {
+        for (uint32_t i = 0; i < fpsEntry.count; i += 2) {
+            int32_t minFps = fpsEntry.data.i32[i];
+            int32_t maxFps = fpsEntry.data.i32[i + 1];
+
+            if (minFps >= 60 || maxFps >= 60) {
+                    is60FpsSupported = true;
+                    break;
+            }
+        }
+    }
+    ACameraMetadata_free(chars);
+    }
+
     ACameraManager_openCamera(
         cameraManager_,
         activeId.c_str(),
@@ -150,6 +179,16 @@ void NDKCamera::CreateSession(ANativeWindow* readerWindow)
         &captureSession_
     );
     ACameraDevice_createCaptureRequest(cameraDevice_, TEMPLATE_PREVIEW, &captureRequest_);
+
+    int32_t targetFps[2] = {60, 60};
+
+    camera_status_t fpsStatus = ACaptureRequest_setEntry_i32(
+        captureRequest_, 
+        ACAMERA_CONTROL_AE_TARGET_FPS_RANGE, 
+        2, 
+        targetFps
+    );
+
     ACaptureRequest_addTarget(captureRequest_, outputTarget_);
 }
 

@@ -4,6 +4,7 @@
 #include <spdlog/spdlog.h>
 #include <utils.h>
 
+
 CameraEngine::CameraEngine(ANativeWindow *window, int32_t width, int32_t height,
                            int32_t format)
     : ndkCamera_(nullptr), displayWindow_(window), width_(width),
@@ -14,9 +15,7 @@ CameraEngine::CameraEngine(ANativeWindow *window, int32_t width, int32_t height,
     ANativeWindow_acquire(displayWindow_);
   }
   isRunning_ = true;
-  renderThread_ = std::thread(&CameraEngine::renderLoop,
-                              this); // Spawns new independent thread for
-                                     // rendering to run OpenGL and EGL calls.
+  renderThread_ = std::thread(&CameraEngine::renderLoop, this); // Spawns new independent thread for/ rendering to run OpenGL and EGL calls.
 }
 
 CameraEngine::~CameraEngine() {
@@ -92,7 +91,6 @@ void CameraEngine::renderLoop() {
       if (image != EGL_NO_IMAGE_KHR) {
         eglManager_.DrawTexture(textureId_);
         eglManager_.SwapBuffers();
-        eglManager_.UnbindHardwareBuffer(image);
 
         auto now = std::chrono::high_resolution_clock::now();
 

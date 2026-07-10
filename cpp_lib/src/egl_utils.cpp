@@ -1,4 +1,5 @@
 #include "egl_utils.h"
+#include <unordered_map>
 
 PFNEGLGETNATIVECLIENTBUFFERANDROIDPROC fn_eglGetNativeClientBufferANDROID = nullptr;
 PFNEGLCREATEIMAGEKHRPROC fn_eglCreateImageKHR = nullptr;
@@ -88,6 +89,13 @@ bool EGLManager::InitializeEGL(ANativeWindow* window)
 
 void EGLManager::ReleaseEGL()
 {
+    for (auto const& [buffer, image]: eglImageCache_) {
+        if (image != EGL_NO_IMAGE_KHR) {
+            fn_eglDestroyImageKHR(display_, image);
+        }
+    }
+    eglImageCache_.clear();
+
     if (display_ != EGL_NO_DISPLAY && context_ != EGL_NO_CONTEXT) {
         eglMakeCurrent(display_, surface_, surface_, context_);
         
@@ -155,36 +163,37 @@ EGLImageKHR EGLManager::BindHardwareBuffer(AHardwareBuffer* buffer, GLuint textu
         return EGL_NO_IMAGE_KHR;
     }
 
-    EGLClientBuffer clientBuffer = fn_eglGetNativeClientBufferANDROID(buffer); // wrap AHardwareBuffer into EGLClientBuffer wrapper.
-    if (clientBuffer == nullptr) {
-        return EGL_NO_IMAGE_KHR;
+    EGLImageKHR image = EGL_NO_IMAGE_KHR;
+    auto it = eglImageCache_.find(buffer);
+
+    if (it != eglImageCache_.end()) {
+        // cache hit: reuse EGLImage already associated with this buffer
+        image = it->second;
+    } else {
+        // cache miss: create EGLImage wrapper for this buffer
+        EGLClientBuffer clientBuffer = fn_eglGetNativeClientBufferANDROID(buffer);
+        if (clientBuffer == nullptr) {
+            return EGL_NO_IMAGE_KHR;
+        }
+        EGLint attributes[] = {EGL_IMAGE_PRESERVED_KHR, EGL_TRUE, EGL_NONE};
+        image = fn_eglCreateImageKHR(
+            display_,
+            EGL_NO_CONTEXT,
+            EGL_NATIVE_BUFFER_ANDROID,
+            clientBuffer,
+            attributes
+        );
+        if (image != EGL_NO_IMAGE_KHR) {
+            eglImageCache_[buffer] = image; // insert the EGLImage into cache.
+        }
     }
 
-    EGLint attributes[] = {EGL_IMAGE_PRESERVED_KHR, EGL_TRUE, EGL_NONE}; // params to ensure pixel contents are preserved in buffer
-
-    EGLImageKHR image = fn_eglCreateImageKHR(
-        display_,
-        EGL_NO_CONTEXT,
-        EGL_NATIVE_BUFFER_ANDROID,
-        clientBuffer,
-        attributes
-    );
-
-    if (image == EGL_NO_IMAGE_KHR) {
-        return EGL_NO_IMAGE_KHR;
+    if (image != EGL_NO_IMAGE_KHR) {
+        glBindTexture(GL_TEXTURE_EXTERNAL_OES, textureId);
+        fn_glEGLImageTargetTexture2DOES(GL_TEXTURE_EXTERNAL_OES, image);
     }
-    glBindTexture(GL_TEXTURE_EXTERNAL_OES, textureId);
-    fn_glEGLImageTargetTexture2DOES(GL_TEXTURE_EXTERNAL_OES, image); // -> this function allows the zero-copy memory transfer in my pipeline
-    // directs GL_TEXTURE_EXTERNAL_OES to read pixel data directly from the area of memory the camera is streaming to
 
     return image; // returns EGLImageKHR handle
-}
-
-void EGLManager::UnbindHardwareBuffer(EGLImageKHR image)
-{
-    if (extensionsLoaded_ && image != EGL_NO_IMAGE_KHR) {
-        fn_eglDestroyImageKHR(display_, image);
-    }
 }
 
 void EGLManager::SwapBuffers()

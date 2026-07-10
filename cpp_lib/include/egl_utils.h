@@ -5,6 +5,7 @@
 #include <GLES2/gl2ext.h> // imports GLES extention tags (GL_TEXTURE_EXTERNAL_OES)
 #include <android/native_window.h>
 #include <android/hardware_buffer.h>
+#include <unordered_map>
 
 // function pointer variables declared in eglext.h and glext.h. Look at what comes after 'get', that is the purpose of these function pointers.
 extern PFNEGLGETNATIVECLIENTBUFFERANDROIDPROC fn_eglGetNativeClientBufferANDROID; // the ANativeWindow object
@@ -22,7 +23,6 @@ class EGLManager
         void ReleaseEGL();
         GLuint InitGLExternalTexture();
         EGLImageKHR BindHardwareBuffer(AHardwareBuffer* buffer, GLuint textureId);
-        void UnbindHardwareBuffer(EGLImageKHR image);
         void SwapBuffers();
 
         bool InitShaders();
@@ -42,6 +42,8 @@ class EGLManager
         GLuint vao_ = 0;
         GLuint vbo_ = 0;
         GLint textureUniformLocation_ = -1;
+
+        std::unordered_map<AHardwareBuffer*, EGLImageKHR> eglImageCache_;
 };
 
 struct Shaders
