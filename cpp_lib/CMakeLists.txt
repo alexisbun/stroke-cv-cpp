@@ -50,6 +50,10 @@ find_package(spdlog REQUIRED)
 
 add_library(${PROJECT_NAME} SHARED src/lib.cpp src/jni_native.cpp src/camera_engine.cpp src/ndk_camera.cpp src/egl_utils.cpp src/image_reader_handler.cpp src/utils.cpp)
 
+add_library(face_landmarker SHARED IMPORTED)
+set_target_properties(face_landmarker PROPERTIES
+    IMPORTED_LOCATION /home/alexis/git/stroke-cv-cpp/flutter_ui/android/app/src/main/jniLibs/arm64-v8a/libface_landmarker.so)
+
 find_library(android android)
 find_library(GLESv3 GLESv3)
 find_library(camera2ndk camera2ndk)
@@ -63,6 +67,7 @@ target_link_libraries(${PROJECT_NAME}
         ${EGL}        
         ${mediandk}  
         ${camera2ndk}
+        face_landmarker
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC include)

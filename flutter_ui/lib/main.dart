@@ -40,7 +40,9 @@ final NativeDetachDart nativeDetach = InitLibrary.instance
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   try {
+    //ffi.DynamicLibrary.open('libface_landmarker.so');
     InitLibrary.init();
+    //ffi.DynamicLibrary.open('libface_landmarker.so');
     print("Native C++ Library loaded successfully.");
   } catch (e) {
     print("Failed to load native library: $e");

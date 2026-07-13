@@ -42,6 +42,11 @@ class InitLibrary {
 
   static ffi.DynamicLibrary _loadDynamicLibrary() {
     if (Platform.isAndroid) {
+      try {
+        ffi.DynamicLibrary.open('libface_landmarker.so');
+      } catch (e) {
+        print("Failed to load libface_landmarker.so: $e");
+      }
       return ffi.DynamicLibrary.open('libStrokeCVLib.so');
     } else if (Platform.isIOS || Platform.isMacOS) {
       return ffi.DynamicLibrary.process();
