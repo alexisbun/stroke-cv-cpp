@@ -2,15 +2,10 @@ import 'dart:ffi';
 import 'package:ffi/ffi.dart';
 import 'package:jni_flutter/jni_flutter.dart';
 import 'package:camera_mvp/camera_bindings.dart';
-import 'camera_bindings.dart' as bindings;
 import 'package:permission_handler/permission_handler.dart';
-
 import 'dart:ffi' as ffi;
 import 'dart:io';
-
 import 'dart:async';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:jni/jni.dart';
 
 class PermissionService {
@@ -38,8 +33,6 @@ class InitLibrary {
     return _instance!;
   }
 
-  // Remember to test whether you need to load libface_landmarker.so even in the
-  // first place because it's already linked to libStrokeCVLib.so.
   static void init() {
     if (_instance != null) return; // Already loaded
     _instance = _loadDynamicLibrary();
@@ -47,6 +40,8 @@ class InitLibrary {
 
   static ffi.DynamicLibrary _loadDynamicLibrary() {
     if (Platform.isAndroid) {
+      // Remember to test whether you need to load libface_landmarker.so even in the
+      // first place because it's already linked to libStrokeCVLib.so.
       try {
         ffi.DynamicLibrary.open('libface_landmarker.so');
       } catch (e) {
@@ -64,33 +59,15 @@ class InitLibrary {
   }
 }
 
-typedef InitFaceMeshFromAssetCXX =
-    ffi.Void Function(
-      ffi.Pointer<ffi.Void> env,
-      ffi.Pointer<ffi.Void> assetManager,
-      ffi.Pointer<Utf8> assetName,
-    );
-typedef InitFaceMeshFromAssetDart =
-    void Function(
-      ffi.Pointer<ffi.Void> env,
-      ffi.Pointer<ffi.Void> assetManager,
-      ffi.Pointer<Utf8> assetName,
-    );
-final InitFaceMeshFromAssetDart initFaceMeshFromAsset = InitLibrary.instance
-    .lookupFunction<InitFaceMeshFromAssetCXX, InitFaceMeshFromAssetDart>(
-      'initFaceMeshFromAsset',
-    );
-
-void initializeEngine(
-  ffi.Pointer<ffi.Void> envPointer,
-  JObject jAssetManager,
-) async {
-  final ffi.Pointer<Utf8> nativeAssetName = 'flutter_assets/assets/face_landmarker.task'
-      .toNativeUtf8();
-  initFaceMeshFromAsset(
+CameraBindings bindings = CameraBindings(InitLibrary.instance);
+void initializeEngine(ffi.Pointer<ffi.Void> envPointer, JObject jAssetManager) {
+  final ffi.Pointer<Utf8> utf8Pointer =
+      'flutter_assets/assets/face_landmarker.task'.toNativeUtf8();
+  final ffi.Pointer<ffi.Char> charPointer = utf8Pointer.cast<ffi.Char>();
+  bindings.initFaceMeshFromAsset(
     envPointer,
     jAssetManager.reference.pointer,
-    nativeAssetName,
+    charPointer,
   );
-  calloc.free(nativeAssetName);
+  calloc.free(utf8Pointer);
 }

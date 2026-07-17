@@ -100,6 +100,6 @@ struct Shaders
     )glsl";
 }; 
 // With mediapipe integration, change uniform 'samplerExternalOES u_texture' to 'uniform sampler2D u_texture'
-// because mediapipe uses GL_TEXTURE_2D as its texture format.
+// because mediapipe uses GL_TEXTURE_2D as its texture format. DONT DO.
 
 

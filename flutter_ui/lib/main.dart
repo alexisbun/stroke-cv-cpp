@@ -1,18 +1,11 @@
 import 'dart:ffi' as ffi;
-import 'dart:io';
-
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'camera_bindings.dart' as bindings;
-
 import 'global.dart';
-
-import 'package:jnigen/jnigen.dart';
 import 'package:jni/jni.dart';
 import 'generated/android_graphics.g.dart';
-
 import 'dart:ui' as ui;
 import 'package:jni_flutter/jni_flutter.dart';
 
@@ -40,9 +33,7 @@ final NativeDetachDart nativeDetach = InitLibrary.instance
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   try {
-    //ffi.DynamicLibrary.open('libface_landmarker.so');
     InitLibrary.init();
-    //ffi.DynamicLibrary.open('libface_landmarker.so');
     print("Native C++ Library loaded successfully.");
   } catch (e) {
     print("Failed to load native library: $e");
