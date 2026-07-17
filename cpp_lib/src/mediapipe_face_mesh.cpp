@@ -73,31 +73,76 @@ void FaceMesh::ProcessFrame(AHardwareBuffer* hardware_buffer, int64_t timestamp_
     AHardwareBuffer_Desc desc;
     AHardwareBuffer_describe(hardware_buffer, &desc);
 
-    void* virtualAddress = nullptr;
-    int lockStatus = AHardwareBuffer_lock(
-        hardware_buffer,
-        AHARDWAREBUFFER_USAGE_CPU_READ_OFTEN,
-        -1,
-        nullptr,
-        &virtualAddress
-    );
+    spdlog::debug("FaceMesh::ProcessFrame: buffer details: width={}, height={}, stride={}, format={}, usage={}",
+                  desc.width, desc.height, desc.stride, desc.format, desc.usage);
 
-    if (lockStatus != 0 || !virtualAddress) {
-        spdlog::error("Failed to lock AHardwareBuffer: {}", lockStatus);
+    if (desc.format == AHARDWAREBUFFER_FORMAT_Y8Cb8Cr8_420) {
+        AHardwareBuffer_Planes planes;
+        int lockStatus = AHardwareBuffer_lockPlanes(
+            hardware_buffer,
+            AHARDWAREBUFFER_USAGE_CPU_READ_OFTEN,
+            -1,
+            nullptr,
+            &planes
+        );
+
+        if (lockStatus != 0 || planes.planeCount < 3) {
+            spdlog::error("FaceMesh::ProcessFrame: Failed to lock YUV planes: {}", lockStatus);
+            return;
+        }
+
+        size_t fullResSize = desc.width * desc.height * 4;
+        if (fullResolutionArgbBuffer_.size() < fullResSize) {
+            fullResolutionArgbBuffer_.resize(fullResSize);
+        }
+
+        libyuv::Android420ToARGB(
+            reinterpret_cast<const uint8_t*>(planes.planes[0].data), planes.planes[0].rowStride,
+            reinterpret_cast<const uint8_t*>(planes.planes[1].data), planes.planes[1].rowStride,
+            reinterpret_cast<const uint8_t*>(planes.planes[2].data), planes.planes[2].rowStride,
+            planes.planes[1].pixelStride,
+            fullResolutionArgbBuffer_.data(), desc.width * 4,
+            desc.width, desc.height
+        );
+
+        AHardwareBuffer_unlock(hardware_buffer, nullptr);
+
+        int dstStrideBytes = scaledWidth_ * 4;
+        libyuv::ARGBScale(
+            fullResolutionArgbBuffer_.data(), desc.width * 4, desc.width, desc.height,
+            scaledBuffer_.data(), dstStrideBytes, scaledWidth_, scaledHeight_,
+            libyuv::kFilterBox
+        );
+    } else if (desc.format == AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM) {
+        void* virtualAddress = nullptr;
+        int lockStatus = AHardwareBuffer_lock(
+            hardware_buffer,
+            AHARDWAREBUFFER_USAGE_CPU_READ_OFTEN,
+            -1,
+            nullptr,
+            &virtualAddress
+        );
+
+        if (lockStatus != 0 || !virtualAddress) {
+            spdlog::error("Failed to lock AHardwareBuffer: {}", lockStatus);
+            return;
+        }
+
+        const uint8_t* srcRgba = reinterpret_cast<const uint8_t*>(virtualAddress);
+        int srcStrideBytes = desc.stride * 4;
+        int dstStrideBytes = scaledWidth_ * 4;
+
+        libyuv::ARGBScale(
+            srcRgba, srcStrideBytes, desc.width, desc.height,
+            scaledBuffer_.data(), dstStrideBytes, scaledWidth_, scaledHeight_,
+            libyuv::kFilterBox
+        );
+
+        AHardwareBuffer_unlock(hardware_buffer, nullptr);
+    } else {
+        spdlog::error("FaceMesh::ProcessFrame: Unsupported buffer format {}", desc.format);
         return;
     }
-
-    const uint8_t* srcRgba = reinterpret_cast<const uint8_t*>(virtualAddress);
-    int srcStrideBytes = desc.stride * 4;
-    int dstStrideBytes = scaledWidth_ * 4;
-
-    libyuv::ARGBScale(
-        srcRgba, srcStrideBytes, desc.width, desc.height,
-        scaledBuffer_.data(), dstStrideBytes, scaledWidth_, scaledHeight_,
-        libyuv::kFilterBox
-    );
-
-    AHardwareBuffer_unlock(hardware_buffer, nullptr);
 
     MpImagePtr image = nullptr;
     char* error_msg = nullptr;

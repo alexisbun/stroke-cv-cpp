@@ -85,7 +85,7 @@ void initializeEngine(
   ffi.Pointer<ffi.Void> envPointer,
   JObject jAssetManager,
 ) async {
-  final ffi.Pointer<Utf8> nativeAssetName = 'face_landmarker.task'
+  final ffi.Pointer<Utf8> nativeAssetName = 'flutter_assets/assets/face_landmarker.task'
       .toNativeUtf8();
   initFaceMeshFromAsset(
     envPointer,

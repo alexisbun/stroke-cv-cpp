@@ -65,14 +65,30 @@ class CameraBindings {
   late final _getEngineFps = _getEngineFpsPtr
       .asFunction<double Function(int)>();
 
-  void initFaceMesh(ffi.Pointer<ffi.Char> modelPath) {
-    return _initFaceMesh(modelPath);
+  void initFaceMeshFromAsset(
+    ffi.Pointer<ffi.Void> env_ptr,
+    ffi.Pointer<ffi.Void> j_asset_manager,
+    ffi.Pointer<ffi.Char> asset_name,
+  ) {
+    return _initFaceMeshFromAsset(env_ptr, j_asset_manager, asset_name);
   }
 
-  late final _initFaceMeshPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Char>)>>(
-        'initFaceMesh',
-      );
-  late final _initFaceMesh = _initFaceMeshPtr
-      .asFunction<void Function(ffi.Pointer<ffi.Char>)>();
+  late final _initFaceMeshFromAssetPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Pointer<ffi.Void>,
+            ffi.Pointer<ffi.Void>,
+            ffi.Pointer<ffi.Char>,
+          )
+        >
+      >('initFaceMeshFromAsset');
+  late final _initFaceMeshFromAsset = _initFaceMeshFromAssetPtr
+      .asFunction<
+        void Function(
+          ffi.Pointer<ffi.Void>,
+          ffi.Pointer<ffi.Void>,
+          ffi.Pointer<ffi.Char>,
+        )
+      >();
 }

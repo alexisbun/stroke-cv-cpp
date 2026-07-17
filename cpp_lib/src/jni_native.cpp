@@ -60,15 +60,24 @@ extern "C" void nativeDetach(long long engineHandle) {
 }
 
 FaceMesh faceMesh;
-extern "C" void initFaceMeshFromAsset(void* env_ptr, jobject j_asset_manager, const char* asset_name) {
+extern "C" void initFaceMeshFromAsset(void* env_ptr, void* j_asset_manager, const char* asset_name) {
     JNIEnv* env = reinterpret_cast<JNIEnv*>(env_ptr);
-    AAssetManager* mgr = AAssetManager_fromJava(env, j_asset_manager);
+    jobject asset_manager_obj = reinterpret_cast<jobject>(j_asset_manager);
+    AAssetManager* mgr = AAssetManager_fromJava(env, asset_manager_obj);
+    if (!mgr) {
+        spdlog::error("initFaceMeshFromAsset: Failed to get AAssetManager from Java!");
+        return;
+    }
+    spdlog::info("initFaceMeshFromAsset: Attempting to open asset: {}", asset_name);
     AAsset* asset = AAssetManager_open(mgr, asset_name, AASSET_MODE_BUFFER);
     if (asset) {
         size_t size = AAsset_getLength(asset);
+        spdlog::info("initFaceMeshFromAsset: Successfully opened asset. Size: {} bytes", size);
         char* buffer = new char[size];
         AAsset_read(asset, buffer, size);
         AAsset_close(asset);
         faceMesh.InitializeFaceLandmarkerFromBuffer(buffer, size);
+    } else {
+        spdlog::error("initFaceMeshFromAsset: Failed to open asset '{}' from AAssetManager!", asset_name);
     }
 }

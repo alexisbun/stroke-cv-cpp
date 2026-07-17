@@ -41,7 +41,6 @@ CameraEngine::~CameraEngine() {
 }
 
 void CameraEngine::renderLoop() {
-
   spdlog::info("Render thread started.");
   if (!eglManager_.InitializeEGL(displayWindow_)) { // Boot EGL display/context
                                                     // on the rendering thread.
@@ -98,13 +97,13 @@ void CameraEngine::renderLoop() {
            std::vector<float> projectedCoordinates;
            projectedCoordinates.reserve(landmarks.size() * 2);
 
-           for (const auto& lm : landmarks) {
-                float ndcX = (lm.x * 2.0f) - 1.0f;
-                float ndcY = -((lm.y * 2.0f) - 1.0f);
-                
-                projectedCoordinates.push_back(ndcX);
-                projectedCoordinates.push_back(ndcY);
-            }
+            for (const auto& lm : landmarks) {
+                 float ndcX = 1.0f - (lm.y * 2.0f);
+                 float ndcY = (lm.x * 2.0f) - 1.0f;
+                 
+                 projectedCoordinates.push_back(ndcX);
+                 projectedCoordinates.push_back(ndcY);
+             }
             eglManager_.DrawLandmarks(projectedCoordinates);
         }
 
@@ -117,7 +116,6 @@ void CameraEngine::renderLoop() {
           now.time_since_epoch()).count();
           
         faceMesh.ProcessFrame(localBuffer, timestamp_ms);
-
 
         if (isFirstFrame_) {
           isFirstFrame_ = false;

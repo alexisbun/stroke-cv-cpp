@@ -29,6 +29,7 @@ private:
     char* modelBuffer_ = nullptr;
 
     std::vector<uint8_t> scaledBuffer_;
+    std::vector<uint8_t> fullResolutionArgbBuffer_;
     int scaledWidth_ = 256;
     int scaledHeight_ = 256;
 
