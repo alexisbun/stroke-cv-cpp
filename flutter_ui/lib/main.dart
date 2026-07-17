@@ -57,9 +57,7 @@ class _CameraState extends State<Camera> {
   var _hasPermission = false;
   var _isLoading = true;
   bool _isPipelineInitialized = false;
-
   final _bindings = bindings.CameraBindings(InitLibrary.instance);
-
   Timer? _fpsTimer;
   double _fps = 0.0;
 
@@ -207,8 +205,6 @@ class _CameraState extends State<Camera> {
 // MAIN
 class MainApp extends StatelessWidget {
   const MainApp({super.key});
-
-  Future<void> testGetTextureID() async {}
 
   @override
   Widget build(BuildContext context) {

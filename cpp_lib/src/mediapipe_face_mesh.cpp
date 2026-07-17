@@ -180,6 +180,9 @@ void FaceMesh::onFaceLandmarksReady(MpStatus status, const MpFaceLandmarkerResul
 
 void FaceMesh::handleResult(MpStatus status, const MpFaceLandmarkerResult* result) {
     if (status != kMpOk || !result || result->face_landmarks_count == 0) {
+        // grab mutex and clear the detections
+        std::lock_guard<std::mutex> lock(landmarksMutex_);
+        latestLandmarks_.clear();
         return;
     }
 
@@ -191,8 +194,9 @@ void FaceMesh::handleResult(MpStatus status, const MpFaceLandmarkerResult* resul
 
 bool FaceMesh::GetLatestLandmarks(std::vector<MpNormalizedLandmark>& out_landmarks) {
     std::lock_guard<std::mutex> lock(landmarksMutex_);
-    if (!landmarksUpdated_) return false;
+    if (latestLandmarks_.size() == 0) {
+        return false;
+    }
     out_landmarks = latestLandmarks_;
-    landmarksUpdated_ = false;
     return true;
 }

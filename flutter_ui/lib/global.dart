@@ -14,12 +14,10 @@ class PermissionService {
     if (status.isDenied) {
       status = await Permission.camera.request();
     }
-
     if (status.isPermanentlyDenied || status.isRestricted) {
       await openAppSettings();
       status = await Permission.camera.status;
     }
-
     return status.isGranted;
   }
 }
