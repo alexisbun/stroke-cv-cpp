@@ -13,3 +13,10 @@ Prerequisites:
 - Configured Flutter development enviroment with an Andrioid Sdk (https://docs.flutter.dev/install/quick, https://docs.flutter.dev/platform-integration/android/setup)
 - The 'ANDRIOID_NDK_HOME' enviroment variable set (for example, export ANDROID_NDK_HOME="[path]/Android/Sdk/ndk/30.0.14904198")
 
+# build face_landmarker
+
+1. Apply patch in patches/mediapipe.patch
+2. 
+```
+bazel build --config=android_arm64   --repo_env=HERMETIC_PYTHON_VERSION=3.12   --sandbox_writable_path=/home/alexis/.cache/ccache   -c opt --linkopt -s --strip always   //mediapipe/tasks/c/vision/face_landmarker:libface_landmarker.so
+```

@@ -1,0 +1,64 @@
+diff --git a/WORKSPACE b/WORKSPACE
+index c353b11b3..62c5b6b92 100644
+--- a/WORKSPACE
++++ b/WORKSPACE
+@@ -770,3 +770,21 @@ http_archive(
+     strip_prefix = "curl-8.10.1",
+     url = "https://curl.haxx.se/download/curl-8.10.1.tar.gz",
+ )
++
++android_sdk_repository(
++    name = "androidsdk",
++    path = "/home/alexis/Android/Sdk",
++    )
++
++android_ndk_repository(
++    name = "androidndk",
++    api_level = 21,
++    path = "/home/alexis/Android/Sdk/ndk/29.0.14206865",
++    )
++
++bind(
++    name = "android/crosstool",
++    actual = "@androidndk//:toolchain",
++    )
++
++register_toolchains("@androidsdk//:all", "@androidndk//:all")
+diff --git a/mediapipe/tasks/c/vision/core/BUILD b/mediapipe/tasks/c/vision/core/BUILD
+index 1cc8a96d8..50263a3c6 100644
+--- a/mediapipe/tasks/c/vision/core/BUILD
++++ b/mediapipe/tasks/c/vision/core/BUILD
+@@ -48,6 +48,7 @@ cc_library(
+     srcs = ["image.cc"],
+     hdrs = ["image.h"],
+     deps = IMAGE_DEPS,
++    alwayslink = 1,
+ )
+ 
+ cc_library(
+diff --git a/mediapipe/tasks/c/vision/face_landmarker/BUILD b/mediapipe/tasks/c/vision/face_landmarker/BUILD
+index 842703a5a..840b592f7 100644
+--- a/mediapipe/tasks/c/vision/face_landmarker/BUILD
++++ b/mediapipe/tasks/c/vision/face_landmarker/BUILD
+@@ -151,7 +151,10 @@ cc_binary(
+         "nobuilder",
+         "notap",
+     ],
+-    deps = [":face_landmarker_lib"],
++    deps = [
++        ":face_landmarker_c_lib",
++        "//mediapipe/tasks/c/vision/core:image_c_lib",
++    ],
+ )
+ 
+ # bazel build --config darwin_arm64 -c opt --strip always --define MEDIAPIPE_DISABLE_GPU=1 \
+@@ -168,5 +171,8 @@ cc_binary(
+         "nobuilder",
+         "notap",
+     ],
+-    deps = [":face_landmarker_lib"],
++    deps = [
++        ":face_landmarker_c_lib",
++        "//mediapipe/tasks/c/vision/core:image_c_lib",
++    ],
+ )
