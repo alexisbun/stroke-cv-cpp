@@ -35,9 +35,7 @@ private:
 
     std::mutex landmarksMutex_;
     std::vector<MpNormalizedLandmark> latestLandmarks_;
-    bool landmarksUpdated_ = false;
 
-    // callback for result_callback_fn
     static void onFaceLandmarksReady(
         MpStatus status,
         const MpFaceLandmarkerResult* result,
