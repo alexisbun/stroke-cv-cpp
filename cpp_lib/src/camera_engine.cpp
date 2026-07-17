@@ -1,9 +1,11 @@
 #include "camera_engine.h"
 #include "ndk_camera.h"
+#include "mediapipe_face_mesh.h"
 
 #include <spdlog/spdlog.h>
 #include <utils.h>
 
+extern FaceMesh faceMesh;
 
 CameraEngine::CameraEngine(ANativeWindow *window, int32_t width, int32_t height,
                            int32_t format)
@@ -90,9 +92,32 @@ void CameraEngine::renderLoop() {
           eglManager_.BindHardwareBuffer(localBuffer, textureId_);
       if (image != EGL_NO_IMAGE_KHR) {
         eglManager_.DrawTexture(textureId_);
-        eglManager_.SwapBuffers();
 
+        std::vector<MpNormalizedLandmark> landmarks;
+        if (faceMesh.GetLatestLandmarks(landmarks)) {
+           std::vector<float> projectedCoordinates;
+           projectedCoordinates.reserve(landmarks.size() * 2);
+
+           for (const auto& lm : landmarks) {
+                float ndcX = (lm.x * 2.0f) - 1.0f;
+                float ndcY = -((lm.y * 2.0f) - 1.0f);
+                
+                projectedCoordinates.push_back(ndcX);
+                projectedCoordinates.push_back(ndcY);
+            }
+            eglManager_.DrawLandmarks(projectedCoordinates);
+        }
+
+        // present comined camera frame
+        eglManager_.SwapBuffers();
         auto now = std::chrono::high_resolution_clock::now();
+
+        // INTRODUCE A WAY OF DOING A TOGGLE FOR THIS
+        int64_t timestamp_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+          now.time_since_epoch()).count();
+          
+        faceMesh.ProcessFrame(localBuffer, timestamp_ms);
+
 
         if (isFirstFrame_) {
           isFirstFrame_ = false;

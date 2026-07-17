@@ -1,6 +1,5 @@
-// UNDERLYING LOGIC OF OBTAINING A SURFACE, INITALIZING IT, OBTAINING THE
-// ANATIVEWINDOW IS THE SAME EXCEPT NOT THROUGH KOTLIN
 #include "camera_engine.h"
+#include "mediapipe_face_mesh.h"
 #include "lib.h"
 #include <android/hardware_buffer.h>
 #include <android/native_window_jni.h>
@@ -8,6 +7,8 @@
 #include <spdlog/sinks/android_sink.h>
 #include <spdlog/spdlog.h>
 #include <stdint.h>
+#include <android/asset_manager.h>
+#include <android/asset_manager_jni.h>
 
 JavaVM *g_JavaVM = nullptr;
 
@@ -56,4 +57,18 @@ extern "C" void nativeDetach(long long engineHandle) {
   }
   CameraEngine *engine = reinterpret_cast<CameraEngine *>(engineHandle);
   delete engine;
+}
+
+FaceMesh faceMesh;
+extern "C" void initFaceMeshFromAsset(void* env_ptr, jobject j_asset_manager, const char* asset_name) {
+    JNIEnv* env = reinterpret_cast<JNIEnv*>(env_ptr);
+    AAssetManager* mgr = AAssetManager_fromJava(env, j_asset_manager);
+    AAsset* asset = AAssetManager_open(mgr, asset_name, AASSET_MODE_BUFFER);
+    if (asset) {
+        size_t size = AAsset_getLength(asset);
+        char* buffer = new char[size];
+        AAsset_read(asset, buffer, size);
+        AAsset_close(asset);
+        faceMesh.InitializeFaceLandmarkerFromBuffer(buffer, size);
+    }
 }

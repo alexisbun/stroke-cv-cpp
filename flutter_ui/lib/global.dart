@@ -1,6 +1,6 @@
-// test123123
-
 import 'dart:ffi';
+import 'package:ffi/ffi.dart';
+import 'package:jni_flutter/jni_flutter.dart';
 import 'package:camera_mvp/camera_bindings.dart';
 import 'camera_bindings.dart' as bindings;
 import 'package:permission_handler/permission_handler.dart';
@@ -11,6 +11,7 @@ import 'dart:io';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:jni/jni.dart';
 
 class PermissionService {
   static Future<bool> checkCameraPermission() async {
@@ -37,6 +38,8 @@ class InitLibrary {
     return _instance!;
   }
 
+  // Remember to test whether you need to load libface_landmarker.so even in the
+  // first place because it's already linked to libStrokeCVLib.so.
   static void init() {
     if (_instance != null) return; // Already loaded
     _instance = _loadDynamicLibrary();
@@ -59,4 +62,35 @@ class InitLibrary {
     }
     throw UnsupportedError('Unsupported platform');
   }
+}
+
+typedef InitFaceMeshFromAssetCXX =
+    ffi.Void Function(
+      ffi.Pointer<ffi.Void> env,
+      ffi.Pointer<ffi.Void> assetManager,
+      ffi.Pointer<Utf8> assetName,
+    );
+typedef InitFaceMeshFromAssetDart =
+    void Function(
+      ffi.Pointer<ffi.Void> env,
+      ffi.Pointer<ffi.Void> assetManager,
+      ffi.Pointer<Utf8> assetName,
+    );
+final InitFaceMeshFromAssetDart initFaceMeshFromAsset = InitLibrary.instance
+    .lookupFunction<InitFaceMeshFromAssetCXX, InitFaceMeshFromAssetDart>(
+      'initFaceMeshFromAsset',
+    );
+
+void initializeEngine(
+  ffi.Pointer<ffi.Void> envPointer,
+  JObject jAssetManager,
+) async {
+  final ffi.Pointer<Utf8> nativeAssetName = 'face_landmarker.task'
+      .toNativeUtf8();
+  initFaceMeshFromAsset(
+    envPointer,
+    jAssetManager.reference.pointer,
+    nativeAssetName,
+  );
+  calloc.free(nativeAssetName);
 }

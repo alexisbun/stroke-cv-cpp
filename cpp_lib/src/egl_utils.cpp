@@ -1,5 +1,6 @@
 #include "egl_utils.h"
 #include <unordered_map>
+#include <vector>
 
 PFNEGLGETNATIVECLIENTBUFFERANDROIDPROC fn_eglGetNativeClientBufferANDROID = nullptr;
 PFNEGLCREATEIMAGEKHRPROC fn_eglCreateImageKHR = nullptr;
@@ -110,6 +111,18 @@ void EGLManager::ReleaseEGL()
         if (vbo_ != 0) {
             glDeleteBuffers(1, &vbo_);
             vbo_ = 0;
+        }
+                if (pointProgramId_ != 0) {
+            glDeleteProgram(pointProgramId_);
+            pointProgramId_ = 0;
+        }
+        if (landmarkVao_ != 0) {
+            glDeleteVertexArrays(1, &landmarkVao_);
+            landmarkVao_ = 0;
+        }
+        if (landmarkVbo_ != 0) {
+            glDeleteBuffers(1, &landmarkVbo_);
+            landmarkVbo_ = 0;
         }
     }
 
@@ -249,16 +262,38 @@ bool EGLManager::InitShaders() {
         -1.0f,  1.0f,  1.0f, 1.0f,
          1.0f,  1.0f,  1.0f, 0.0f,
     };
+    
+    GLuint pointVertexShader = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(pointVertexShader, 1, &Shaders::POINT_VERTEX_SOURCE, nullptr);
+    glCompileShader(pointVertexShader);
+    GLuint pointFragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(pointFragmentShader, 1, &Shaders::POINT_FRAGMENT_SOURCE, nullptr);
+    glCompileShader(pointFragmentShader);
+    pointProgramId_ = glCreateProgram();
+    glAttachShader(pointProgramId_, pointVertexShader);
+    glAttachShader(pointProgramId_, pointFragmentShader);
+    glLinkProgram(pointProgramId_);
+    glDeleteShader(pointVertexShader);
+    glDeleteShader(pointFragmentShader);
     glGenVertexArrays(1, &vao_);
     glGenBuffers(1, &vbo_);
     glBindVertexArray(vao_);
+
     glBindBuffer(GL_ARRAY_BUFFER, vbo_);
     glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
-    glBindVertexArray(0);
+    glBindVertexArray(0); 
+    glGenVertexArrays(1, &landmarkVao_);
+    glGenBuffers(1, &landmarkVbo_);
+    glBindVertexArray(landmarkVao_);
+    glBindBuffer(GL_ARRAY_BUFFER, landmarkVbo_);
+    glBufferData(GL_ARRAY_BUFFER, 478 * 2 * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+    glBindVertexArray(0); 
     return true;
 }
 
@@ -271,5 +306,21 @@ void EGLManager::DrawTexture(GLuint textureId) {
     glUniform1i(textureUniformLocation_, 0);
     glBindVertexArray(vao_);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    glBindVertexArray(0);
+}
+
+void EGLManager::DrawLandmarks(const std::vector<float>& projectedCoordinates) {
+    if (projectedCoordinates.empty()) return;
+    
+    glUseProgram(pointProgramId_);
+    glBindVertexArray(landmarkVao_);
+    glBindBuffer(GL_ARRAY_BUFFER, landmarkVbo_);
+    
+    // Upload the coordinate data to the GPU buffer
+    glBufferSubData(GL_ARRAY_BUFFER, 0, projectedCoordinates.size() * sizeof(float), projectedCoordinates.data());
+    
+    // Render as points
+    glDrawArrays(GL_POINTS, 0, projectedCoordinates.size() / 2);
+    
     glBindVertexArray(0);
 }

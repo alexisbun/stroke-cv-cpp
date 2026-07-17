@@ -64,4 +64,15 @@ class CameraBindings {
       );
   late final _getEngineFps = _getEngineFpsPtr
       .asFunction<double Function(int)>();
+
+  void initFaceMesh(ffi.Pointer<ffi.Char> modelPath) {
+    return _initFaceMesh(modelPath);
+  }
+
+  late final _initFaceMeshPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Char>)>>(
+        'initFaceMesh',
+      );
+  late final _initFaceMesh = _initFaceMeshPtr
+      .asFunction<void Function(ffi.Pointer<ffi.Char>)>();
 }

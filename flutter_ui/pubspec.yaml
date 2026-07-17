@@ -22,6 +22,7 @@ dependencies:
   ffigen: ^20.1.1
   flutter:
     sdk: flutter
+  ffi: ^2.1.2
   jni: ^1.0.0
   jni_flutter: ^1.0.1
   permission_handler: ^12.0.3
@@ -34,3 +35,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets: 
+    - assets/face_landmarker.task

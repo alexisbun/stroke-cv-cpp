@@ -20,6 +20,7 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/android_sink.h>
 #include "camera_engine.h"
+#include "mediapipe_face_mesh.h"
 
 int sum(int a, int b)
 {
@@ -37,4 +38,3 @@ extern "C" double getEngineFps(long long engineHandle) {
     CameraEngine *engine = reinterpret_cast<CameraEngine *>(engineHandle);
     return engine->GetFps(); 
 }
-

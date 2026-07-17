@@ -2,5 +2,5 @@
   "name": "cpp-modern-template",
   "version": "0.1.0",
   "builtin-baseline": "94c62d52092db577fda2a87842daabb7f3c35d25",
-  "dependencies": ["spdlog"]
+  "dependencies": ["spdlog", "libyuv"]
 }

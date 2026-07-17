@@ -137,6 +137,7 @@ class _CameraState extends State<Camera> {
     final ffi.Pointer<ffi.Void> envPointer = getJniEnv();
     _engineHandle = nativeAttach(envPointer, rawSurfacePointer, 1920, 1080);
     print("CameraEngine initialized in C++ with handle: $_engineHandle");
+    initializeEngine(envPointer, activity);
 
     if (_engineHandle != null && _engineHandle != 0) {
       _fpsTimer = Timer.periodic(const Duration(milliseconds: 500), (timer) {

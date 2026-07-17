@@ -6,6 +6,7 @@
 #include <android/native_window.h>
 #include <android/hardware_buffer.h>
 #include <unordered_map>
+#include <vector>
 
 // function pointer variables declared in eglext.h and glext.h. Look at what comes after 'get', that is the purpose of these function pointers.
 extern PFNEGLGETNATIVECLIENTBUFFERANDROIDPROC fn_eglGetNativeClientBufferANDROID; // the ANativeWindow object
@@ -27,6 +28,7 @@ class EGLManager
 
         bool InitShaders();
         void DrawTexture(GLuint textureId);
+        void DrawLandmarks(const std::vector<float>& projectedCoordinates);
 
     private:
         EGLDisplay display_;
@@ -42,6 +44,10 @@ class EGLManager
         GLuint vao_ = 0;
         GLuint vbo_ = 0;
         GLint textureUniformLocation_ = -1;
+
+        GLuint pointProgramId_ = 0;
+        GLuint landmarkVao_ = 0;
+        GLuint landmarkVbo_ = 0;
 
         std::unordered_map<AHardwareBuffer*, EGLImageKHR> eglImageCache_;
 };
@@ -68,6 +74,28 @@ struct Shaders
         uniform samplerExternalOES u_texture;
         void main() {
             outColor = texture(u_texture, v_texCoords);
+        }
+    )glsl";
+
+    static constexpr const char* POINT_VERTEX_SOURCE = R"glsl(
+        #version 300 es
+        layout(location = 0) in vec2 a_position;
+        void main() {
+            gl_Position = vec4(a_position, 0.0, 1.0);
+            gl_PointSize = 8.0;
+        }
+    )glsl";
+
+    static constexpr const char* POINT_FRAGMENT_SOURCE = R"glsl(
+        #version 300 es
+        precision mediump float;
+        out vec4 outColor;
+        void main() {
+            vec2 circCoord = 2.0 * gl_PointCoord - 1.0;
+            if (dot(circCoord, circCoord) > 1.0) {
+                discard;
+            }
+            outColor = vec4(0.0, 1.0, 0.0, 1.0); // Green
         }
     )glsl";
 }; 
