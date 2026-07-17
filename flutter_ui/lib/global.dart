@@ -34,19 +34,12 @@ class InitLibrary {
   }
 
   static void init() {
-    if (_instance != null) return; // Already loaded
+    if (_instance != null) return;
     _instance = _loadDynamicLibrary();
   }
 
   static ffi.DynamicLibrary _loadDynamicLibrary() {
     if (Platform.isAndroid) {
-      // Remember to test whether you need to load libface_landmarker.so even in the
-      // first place because it's already linked to libStrokeCVLib.so.
-      try {
-        ffi.DynamicLibrary.open('libface_landmarker.so');
-      } catch (e) {
-        print("Failed to load libface_landmarker.so: $e");
-      }
       return ffi.DynamicLibrary.open('libStrokeCVLib.so');
     } else if (Platform.isIOS || Platform.isMacOS) {
       return ffi.DynamicLibrary.process();

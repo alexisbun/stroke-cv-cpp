@@ -9,6 +9,7 @@ import 'generated/android_graphics.g.dart';
 import 'dart:ui' as ui;
 import 'package:jni_flutter/jni_flutter.dart';
 
+// why not use the functions in the bindings
 typedef NativeAttachCXX =
     ffi.Int64 Function(
       ffi.Pointer<ffi.Void> env,
