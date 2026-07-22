@@ -304,7 +304,10 @@ bool EGLManager::InitShaders() {
     glLinkProgram(meshProgramId_);
     glDeleteShader(meshVertexShader);
     glDeleteShader(meshFragmentShader);
+
     meshTextureUniformLocation_ = glGetUniformLocation(meshProgramId_, "u_texture");
+    //meshGradeUniformLocation_     = glGetUniformLocation(meshProgramId_, "u_clinicalGrade");
+    meshDirectionUniformLocation_ = glGetUniformLocation(meshProgramId_, "u_droopDirection");  
     
     glGenVertexArrays(1, &vao_);
     glGenBuffers(1, &vbo_);
@@ -322,12 +325,14 @@ bool EGLManager::InitShaders() {
     glBindVertexArray(landmarkVao_);
 
     glBindBuffer(GL_ARRAY_BUFFER, landmarkVbo_);
-    glBufferData(GL_ARRAY_BUFFER, 478 * 4 * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, 478 * 5 * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
 
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(2 * sizeof(float)));
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(4 * sizeof(float)));
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, landmarkEbo_);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(FACE_MESH_TRIANGLES), FACE_MESH_TRIANGLES, GL_STATIC_DRAW);
@@ -370,6 +375,8 @@ void EGLManager::DrawStrokeEffect(const std::vector<float> &meshVertexData, GLui
     glUniform1i(meshTextureUniformLocation_, 0);
 
     glBindVertexArray(landmarkVao_);
+
+    glUniform2f(meshDirectionUniformLocation_, +0.03f, -0.15f);
 
     glBindBuffer(GL_ARRAY_BUFFER, landmarkVbo_);
     glBufferSubData(GL_ARRAY_BUFFER, 0, meshVertexData.size() * sizeof(float), meshVertexData.data());

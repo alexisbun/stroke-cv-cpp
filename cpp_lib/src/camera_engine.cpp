@@ -93,23 +93,29 @@ void CameraEngine::renderLoop() {
         eglManager_.DrawTexture(textureId_);
 
         std::vector<MpNormalizedLandmark> landmarks;
+        // float clinicalGrade = 0.33f;
         if (faceMesh.GetLatestLandmarks(landmarks)) {
-           std::vector<float> meshVertexData;
-           meshVertexData.reserve(landmarks.size() * 4);
+          static const auto weights = FacialDroopWeights();  
+          std::vector<float> meshVertexData;
+          meshVertexData.reserve(landmarks.size() * 5);
 
-            for (const auto& lm : landmarks) {
-                 float ndcX = 1.0f - (lm.y * 2.0f);
-                 float ndcY = (lm.x * 2.0f) - 1.0f;
+          size_t i = 0;
+          for (const auto& lm : landmarks) {
+                float ndcX = 1.0f - (lm.y * 2.0f);
+                float ndcY = (lm.x * 2.0f) - 1.0f;
 
                 //  float ndcX = (lm.x * 2.0f) - 1.0f;  
                 //  float ndcY = 1.0f - (lm.y * 2.0f);
 
-                 float u = lm.x;
-                 float v = lm.y;
-                 meshVertexData.push_back(ndcX);
-                 meshVertexData.push_back(ndcY);
-                 meshVertexData.push_back(u);
-                 meshVertexData.push_back(v);
+                float u = lm.x;
+                float v = lm.y;
+                float weight = weights[i++];
+
+                meshVertexData.push_back(ndcX);
+                meshVertexData.push_back(ndcY);
+                meshVertexData.push_back(u);
+                meshVertexData.push_back(v);
+                meshVertexData.push_back(weight);
              }
             // eglManager_.DrawLandmarks(projectedCoordinates); this will draw a face mesh showing all of the landmarks.
             eglManager_.DrawStrokeEffect(meshVertexData, textureId_);
