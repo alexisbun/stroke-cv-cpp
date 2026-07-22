@@ -185,7 +185,6 @@ void FaceMesh::handleResult(MpStatus status, const MpFaceLandmarkerResult* resul
         latestLandmarks_.clear();
         return;
     }
-
     std::lock_guard<std::mutex> lock(landmarksMutex_);
     const auto& face = result->face_landmarks[0];
     latestLandmarks_.assign(face.landmarks, face.landmarks + face.landmarks_count);

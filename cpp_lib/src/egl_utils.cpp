@@ -1,4 +1,5 @@
 #include "egl_utils.h"
+#include "mediapipe_face_mesh.h"
 #include <unordered_map>
 #include <vector>
 
@@ -124,6 +125,14 @@ void EGLManager::ReleaseEGL()
             glDeleteBuffers(1, &landmarkVbo_);
             landmarkVbo_ = 0;
         }
+        if (landmarkEbo_ != 0) {
+            glDeleteBuffers(1, &landmarkEbo_);
+            landmarkEbo_ = 0;
+        }
+        if (meshProgramId_ != 0) {
+            glDeleteProgram(meshProgramId_);
+            meshProgramId_ = 0;
+        }
     }
 
     if (display_ != EGL_NO_DISPLAY) {
@@ -246,15 +255,18 @@ bool EGLManager::InitShaders() {
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertexShader, 1, &Shaders::VERTEX_SOURCE, nullptr);
     glCompileShader(vertexShader);
+
     GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragmentShader, 1, &Shaders::FRAGMENT_SOURCE, nullptr);
     glCompileShader(fragmentShader);
+
     programId_ = glCreateProgram();
     glAttachShader(programId_, vertexShader);
     glAttachShader(programId_, fragmentShader);
     glLinkProgram(programId_);
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
+
     textureUniformLocation_ = glGetUniformLocation(programId_, "u_texture");
     float quadVertices[] = {
         -1.0f, -1.0f,  0.0f, 1.0f,
@@ -262,23 +274,41 @@ bool EGLManager::InitShaders() {
         -1.0f,  1.0f,  1.0f, 1.0f,
          1.0f,  1.0f,  1.0f, 0.0f,
     };
-    
+/*
     GLuint pointVertexShader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(pointVertexShader, 1, &Shaders::POINT_VERTEX_SOURCE, nullptr);
     glCompileShader(pointVertexShader);
+
     GLuint pointFragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(pointFragmentShader, 1, &Shaders::POINT_FRAGMENT_SOURCE, nullptr);
     glCompileShader(pointFragmentShader);
+
     pointProgramId_ = glCreateProgram();
     glAttachShader(pointProgramId_, pointVertexShader);
     glAttachShader(pointProgramId_, pointFragmentShader);
     glLinkProgram(pointProgramId_);
     glDeleteShader(pointVertexShader);
     glDeleteShader(pointFragmentShader);
+*/
+    GLuint meshVertexShader = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(meshVertexShader, 1, &Shaders::MESH_VERTEX_SOURCE, nullptr);
+    glCompileShader(meshVertexShader);
+
+    GLuint meshFragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(meshFragmentShader, 1, &Shaders::MESH_FRAGMENT_SOURCE, nullptr);
+    glCompileShader(meshFragmentShader);
+
+    meshProgramId_ = glCreateProgram();
+    glAttachShader(meshProgramId_, meshVertexShader);
+    glAttachShader(meshProgramId_, meshFragmentShader);
+    glLinkProgram(meshProgramId_);
+    glDeleteShader(meshVertexShader);
+    glDeleteShader(meshFragmentShader);
+    meshTextureUniformLocation_ = glGetUniformLocation(meshProgramId_, "u_texture");
+    
     glGenVertexArrays(1, &vao_);
     glGenBuffers(1, &vbo_);
     glBindVertexArray(vao_);
-
     glBindBuffer(GL_ARRAY_BUFFER, vbo_);
     glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
     glEnableVertexAttribArray(0);
@@ -288,11 +318,20 @@ bool EGLManager::InitShaders() {
     glBindVertexArray(0); 
     glGenVertexArrays(1, &landmarkVao_);
     glGenBuffers(1, &landmarkVbo_);
+    glGenBuffers(1, &landmarkEbo_); // generates EBO buffer
     glBindVertexArray(landmarkVao_);
+
     glBindBuffer(GL_ARRAY_BUFFER, landmarkVbo_);
-    glBufferData(GL_ARRAY_BUFFER, 478 * 2 * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, 478 * 4 * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
+
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, landmarkEbo_);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(FACE_MESH_TRIANGLES), FACE_MESH_TRIANGLES, GL_STATIC_DRAW);
+
     glBindVertexArray(0); 
     return true;
 }
@@ -311,16 +350,35 @@ void EGLManager::DrawTexture(GLuint textureId) {
 
 void EGLManager::DrawLandmarks(const std::vector<float>& projectedCoordinates) {
     if (projectedCoordinates.empty()) return;
-    
     glUseProgram(pointProgramId_);
     glBindVertexArray(landmarkVao_);
     glBindBuffer(GL_ARRAY_BUFFER, landmarkVbo_);
-    
     // Upload the coordinate data to the GPU buffer
     glBufferSubData(GL_ARRAY_BUFFER, 0, projectedCoordinates.size() * sizeof(float), projectedCoordinates.data());
-    
     // Render as points
     glDrawArrays(GL_POINTS, 0, projectedCoordinates.size() / 2);
+    glBindVertexArray(0);
+}
+
+void EGLManager::DrawStrokeEffect(const std::vector<float> &meshVertexData, GLuint textureId) {
+    if (meshVertexData.empty()) return;
+
+    glUseProgram(meshProgramId_);
     
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_EXTERNAL_OES, textureId);
+    glUniform1i(meshTextureUniformLocation_, 0);
+
+    glBindVertexArray(landmarkVao_);
+
+    glBindBuffer(GL_ARRAY_BUFFER, landmarkVbo_);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, meshVertexData.size() * sizeof(float), meshVertexData.data());
+
+    glDrawElements(
+        GL_TRIANGLES, 
+        static_cast<GLsizei>(NUM_FACE_INDICES), 
+        GL_UNSIGNED_SHORT, 
+        (void*)0
+    );
     glBindVertexArray(0);
 }

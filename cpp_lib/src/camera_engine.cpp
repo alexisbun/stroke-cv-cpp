@@ -94,24 +94,31 @@ void CameraEngine::renderLoop() {
 
         std::vector<MpNormalizedLandmark> landmarks;
         if (faceMesh.GetLatestLandmarks(landmarks)) {
-           std::vector<float> projectedCoordinates;
-           projectedCoordinates.reserve(landmarks.size() * 2);
+           std::vector<float> meshVertexData;
+           meshVertexData.reserve(landmarks.size() * 4);
 
             for (const auto& lm : landmarks) {
                  float ndcX = 1.0f - (lm.y * 2.0f);
                  float ndcY = (lm.x * 2.0f) - 1.0f;
-                 
-                 projectedCoordinates.push_back(ndcX);
-                 projectedCoordinates.push_back(ndcY);
+
+                //  float ndcX = (lm.x * 2.0f) - 1.0f;  
+                //  float ndcY = 1.0f - (lm.y * 2.0f);
+
+                 float u = lm.x;
+                 float v = lm.y;
+                 meshVertexData.push_back(ndcX);
+                 meshVertexData.push_back(ndcY);
+                 meshVertexData.push_back(u);
+                 meshVertexData.push_back(v);
              }
-            eglManager_.DrawLandmarks(projectedCoordinates);
+            // eglManager_.DrawLandmarks(projectedCoordinates); this will draw a face mesh showing all of the landmarks.
+            eglManager_.DrawStrokeEffect(meshVertexData, textureId_);
         }
 
         // present comined camera frame
         eglManager_.SwapBuffers();
         auto now = std::chrono::high_resolution_clock::now();
 
-        // INTRODUCE A WAY OF DOING A TOGGLE FOR THIS
         int64_t timestamp_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
           now.time_since_epoch()).count();
           
@@ -123,16 +130,13 @@ void CameraEngine::renderLoop() {
         } else {
           std::chrono::duration<double> elapsed = now - lastWriteTime_;
           lastWriteTime_ = now;
-
           double deltaSeconds = elapsed.count();
-
-          // smoothed FPS.
+          
           if (deltaSeconds > 0.0) {
             double instantaneousFps = 1.0 / deltaSeconds;
             double alpha = 0.05;
             currentFps_ = (alpha * instantaneousFps) + ((1.0 - alpha) * currentFps_);
           }
-
         }
       }
       AImage_delete(localImage);
