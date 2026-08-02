@@ -1,0 +1,584 @@
+{
+  "id": "90f9d5f2-51fa-49ee-8371-39fdc93d8b1b",
+  "revision": 0,
+  "last_node_id": 24,
+  "last_link_id": 38,
+  "nodes": [
+    {
+      "id": 10,
+      "type": "LivePortraitLoadMediaPipeCropper",
+      "pos": [
+        -66.82877923187347,
+        373.58830209511746
+      ],
+      "size": [
+        340.06667175292966,
+        82
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "cropper",
+          "type": "LPCROPPER",
+          "links": [
+            12,
+            29
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-liveportraitkj",
+        "ver": "4d9dc6205b793ffd0fb319816136d9b8c0dbfdff",
+        "Node name for S&R": "LivePortraitLoadMediaPipeCropper"
+      },
+      "widgets_values": [
+        "CPU",
+        true
+      ]
+    },
+    {
+      "id": 19,
+      "type": "Load Image Batch",
+      "pos": [
+        -69.87181387063292,
+        1042.3174298458573
+      ],
+      "size": [
+        299.6999969482422,
+        270
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            30
+          ]
+        },
+        {
+          "name": "filename_text",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "aux_id": "was-node-suite-comfyui/",
+        "ver": "ea935d1044ae5a26efa54ebeb18fe9020af49a45",
+        "Node name for S&R": "Load Image Batch"
+      },
+      "widgets_values": [
+        "single_image",
+        108,
+        "fixed",
+        2,
+        "Batch 001",
+        "/home/alexis/Desktop/synthetic-dataset/driving_images/",
+        "*",
+        "false",
+        "true"
+      ]
+    },
+    {
+      "id": 1,
+      "type": "DownloadAndLoadLivePortraitModels",
+      "pos": [
+        -72.2180844843517,
+        530.20774223071
+      ],
+      "size": [
+        308.9166625976562,
+        82
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "live_portrait_pipe",
+          "type": "LIVEPORTRAITPIPE",
+          "links": [
+            1,
+            6,
+            28
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-liveportraitkj",
+        "ver": "4d9dc6205b793ffd0fb319816136d9b8c0dbfdff",
+        "Node name for S&R": "DownloadAndLoadLivePortraitModels"
+      },
+      "widgets_values": [
+        "fp32",
+        "human"
+      ]
+    },
+    {
+      "id": 16,
+      "type": "LivePortraitCropper",
+      "pos": [
+        348.25676745493024,
+        673.1848769241442
+      ],
+      "size": [
+        272.01666259765625,
+        242
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "pipeline",
+          "type": "LIVEPORTRAITPIPE",
+          "link": 28
+        },
+        {
+          "name": "cropper",
+          "type": "LPCROPPER",
+          "link": 29
+        },
+        {
+          "name": "source_image",
+          "type": "IMAGE",
+          "link": 30
+        }
+      ],
+      "outputs": [
+        {
+          "name": "cropped_image",
+          "type": "IMAGE",
+          "links": [
+            27
+          ]
+        },
+        {
+          "name": "crop_info",
+          "type": "CROPINFO",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-liveportraitkj",
+        "ver": "4d9dc6205b793ffd0fb319816136d9b8c0dbfdff",
+        "Node name for S&R": "LivePortraitCropper"
+      },
+      "widgets_values": [
+        512,
+        2.4,
+        0,
+        -0.3,
+        0,
+        "large-small",
+        true
+      ]
+    },
+    {
+      "id": 14,
+      "type": "LivePortraitComposite",
+      "pos": [
+        1080.5338700101186,
+        322.13792758496146
+      ],
+      "size": [
+        260.92207167307333,
+        116.9591261411914
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source_image",
+          "type": "IMAGE",
+          "link": 21
+        },
+        {
+          "name": "cropped_image",
+          "type": "IMAGE",
+          "link": 24
+        },
+        {
+          "name": "liveportrait_out",
+          "type": "LP_OUT",
+          "link": 25
+        },
+        {
+          "name": "mask",
+          "shape": 7,
+          "type": "MASK",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "full_images",
+          "type": "IMAGE",
+          "links": [
+            23
+          ]
+        },
+        {
+          "name": "mask",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-liveportraitkj",
+        "ver": "4d9dc6205b793ffd0fb319816136d9b8c0dbfdff",
+        "Node name for S&R": "LivePortraitComposite"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 6,
+      "type": "LivePortraitCropper",
+      "pos": [
+        349.7591956379647,
+        369.6029899236371
+      ],
+      "size": [
+        272.01666259765625,
+        242
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "pipeline",
+          "type": "LIVEPORTRAITPIPE",
+          "link": 6
+        },
+        {
+          "name": "cropper",
+          "type": "LPCROPPER",
+          "link": 12
+        },
+        {
+          "name": "source_image",
+          "type": "IMAGE",
+          "link": 8
+        }
+      ],
+      "outputs": [
+        {
+          "name": "cropped_image",
+          "type": "IMAGE",
+          "links": [
+            10
+          ]
+        },
+        {
+          "name": "crop_info",
+          "type": "CROPINFO",
+          "links": [
+            19
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-liveportraitkj",
+        "ver": "4d9dc6205b793ffd0fb319816136d9b8c0dbfdff",
+        "Node name for S&R": "LivePortraitCropper"
+      },
+      "widgets_values": [
+        512,
+        1.8,
+        0,
+        -0.1,
+        0,
+        "large-small",
+        true
+      ]
+    },
+    {
+      "id": 2,
+      "type": "LivePortraitProcess",
+      "pos": [
+        661.7929509017622,
+        361.2830891631209
+      ],
+      "size": [
+        376.4499969482422,
+        330
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "pipeline",
+          "type": "LIVEPORTRAITPIPE",
+          "link": 1
+        },
+        {
+          "name": "crop_info",
+          "type": "CROPINFO",
+          "link": 19
+        },
+        {
+          "name": "source_image",
+          "type": "IMAGE",
+          "link": 10
+        },
+        {
+          "name": "driving_images",
+          "type": "IMAGE",
+          "link": 27
+        },
+        {
+          "name": "opt_retargeting_info",
+          "shape": 7,
+          "type": "RETARGETINGINFO",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "cropped_image",
+          "type": "IMAGE",
+          "links": [
+            24
+          ]
+        },
+        {
+          "name": "output",
+          "type": "LP_OUT",
+          "links": [
+            25
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-liveportraitkj",
+        "ver": "4d9dc6205b793ffd0fb319816136d9b8c0dbfdff",
+        "Node name for S&R": "LivePortraitProcess"
+      },
+      "widgets_values": [
+        false,
+        0.03,
+        true,
+        3,
+        "constant",
+        "single_frame",
+        0.000003,
+        false,
+        0.5
+      ]
+    },
+    {
+      "id": 3,
+      "type": "LoadImage",
+      "pos": [
+        -48.25445613536024,
+        702.202247850864
+      ],
+      "size": [
+        282.83333587646484,
+        314
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            8,
+            21
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "title": "Source",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.28.0",
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "80_1_0_20170110131953974.jpg.chip.jpg",
+        "image"
+      ]
+    },
+    {
+      "id": 11,
+      "type": "SaveImage",
+      "pos": [
+        1090.8298736156244,
+        483.42191898484157
+      ],
+      "size": [
+        698.4104860751761,
+        791.4490485667905
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 23
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": []
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.28.0"
+      },
+      "widgets_values": [
+        "ComfyUI"
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      0,
+      2,
+      0,
+      "LIVEPORTRAITPIPE"
+    ],
+    [
+      6,
+      1,
+      0,
+      6,
+      0,
+      "LIVEPORTRAITPIPE"
+    ],
+    [
+      8,
+      3,
+      0,
+      6,
+      2,
+      "IMAGE"
+    ],
+    [
+      10,
+      6,
+      0,
+      2,
+      2,
+      "IMAGE"
+    ],
+    [
+      12,
+      10,
+      0,
+      6,
+      1,
+      "LPCROPPER"
+    ],
+    [
+      19,
+      6,
+      1,
+      2,
+      1,
+      "CROPINFO"
+    ],
+    [
+      21,
+      3,
+      0,
+      14,
+      0,
+      "IMAGE"
+    ],
+    [
+      23,
+      14,
+      0,
+      11,
+      0,
+      "IMAGE"
+    ],
+    [
+      24,
+      2,
+      0,
+      14,
+      1,
+      "IMAGE"
+    ],
+    [
+      25,
+      2,
+      1,
+      14,
+      2,
+      "LP_OUT"
+    ],
+    [
+      27,
+      16,
+      0,
+      2,
+      3,
+      "IMAGE"
+    ],
+    [
+      28,
+      1,
+      0,
+      16,
+      0,
+      "LIVEPORTRAITPIPE"
+    ],
+    [
+      29,
+      10,
+      0,
+      16,
+      1,
+      "LPCROPPER"
+    ],
+    [
+      30,
+      19,
+      0,
+      16,
+      2,
+      "IMAGE"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.740024994425831,
+      "offset": [
+        252.10337783976362,
+        -139.19707193913004
+      ]
+    },
+    "frontendVersion": "1.47.10"
+  },
+  "version": 0.4
+}
