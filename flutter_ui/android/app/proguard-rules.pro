@@ -18,3 +18,4 @@
 
 -keep class io.flutter.view.** { *; }
 -keep interface io.flutter.view.** { *; }
+-keep class ai.onnxruntime.** { *; }
