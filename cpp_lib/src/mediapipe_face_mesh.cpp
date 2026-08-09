@@ -46,9 +46,9 @@ bool FaceMesh::InitializeFaceLandmarkerFromBuffer(const char* buffer, size_t siz
     options.base_options.delegate = MP_DELEGATE_GPU;
     options.running_mode = MP_RUNNING_MODE_LIVE_STREAM;
     options.num_faces = 1;
-    options.min_face_detection_confidence = 0.5f;
-    options.min_face_presence_confidence = 0.5f;
-    options.min_tracking_confidence = 0.5f;
+    options.min_face_detection_confidence = 0.15f;
+    options.min_face_presence_confidence = 0.15f;
+    options.min_tracking_confidence = 0.15f;
     options.output_face_blendshapes = false;
     options.output_facial_transformation_matrixes = true;
     options.result_callback = FaceMesh::onFaceLandmarksReady;
@@ -72,9 +72,6 @@ void FaceMesh::ProcessFrame(AHardwareBuffer* hardware_buffer, int64_t timestamp_
 
     AHardwareBuffer_Desc desc;
     AHardwareBuffer_describe(hardware_buffer, &desc);
-
-    spdlog::debug("FaceMesh::ProcessFrame: buffer details: width={}, height={}, stride={}, format={}, usage={}",
-                  desc.width, desc.height, desc.stride, desc.format, desc.usage);
 
     if (desc.format == AHARDWAREBUFFER_FORMAT_Y8Cb8Cr8_420) {
         AHardwareBuffer_Planes planes;

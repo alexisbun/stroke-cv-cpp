@@ -16,6 +16,7 @@ CameraEngine::CameraEngine(ANativeWindow *window, int32_t width, int32_t height,
   if (displayWindow_ != nullptr) {
     ANativeWindow_acquire(displayWindow_);
   }
+  spdlog::info("JNI: nativeAttach called. Surface address: {}", (void *)displayWindow_);
   isRunning_ = true;
   renderThread_ = std::thread(&CameraEngine::renderLoop, this); // Spawns new independent thread for/ rendering to run OpenGL and EGL calls.
 }
@@ -46,18 +47,12 @@ void CameraEngine::renderLoop() {
                                                     // on the rendering thread.
     return;                                         // early return if it fails
   }
-  textureId_ =
-      eglManager_
-          .InitGLExternalTexture(); // Generate external texture and assign the
-                                    // texture ID to textureId_.
-  if (!readerHandler_.InitReader(
-          width_, height_)) { // Instantiates AImageReader image buffer queue.
+  textureId_ = eglManager_.InitGLExternalTexture(); // Generate external texture and assign the texture ID to textureId_.
+  if (!readerHandler_.InitReader(width_, height_)) { // Instantiates AImageReader image buffer queue.
     spdlog::error("EGL Initialization failed!");
     eglManager_.ReleaseEGL();
     return;
   }
-  spdlog::info("JNI: nativeAttach called. Surface address: {}",
-               (void *)displayWindow_);
   AImageReader_ImageListener listener;
   listener.context = this;
   listener.onImageAvailable = [](void *context, AImageReader *reader) {
@@ -87,19 +82,15 @@ void CameraEngine::renderLoop() {
       frameReady_ = false;
     }
     if (localImage != nullptr && localBuffer != nullptr) {
-      EGLImageKHR image =
-          eglManager_.BindHardwareBuffer(localBuffer, textureId_);
+      EGLImageKHR image = eglManager_.BindHardwareBuffer(localBuffer, textureId_);
       if (image != EGL_NO_IMAGE_KHR) {
         eglManager_.DrawTexture(textureId_);
 
         std::vector<MpNormalizedLandmark> landmarks;
-        // float clinicalGrade = 0.33f;
         if (faceMesh.GetLatestLandmarks(landmarks)) {
-          static const auto weights = FacialDroopWeights();  
-          std::vector<float> meshVertexData;
-          meshVertexData.reserve(landmarks.size() * 5);
+          std::vector<float> projectedCoordinates;
+          projectedCoordinates.reserve(landmarks.size() * 2);
 
-          size_t i = 0;
           for (const auto& lm : landmarks) {
                 float ndcX = 1.0f - (lm.y * 2.0f);
                 float ndcY = (lm.x * 2.0f) - 1.0f;
@@ -107,18 +98,15 @@ void CameraEngine::renderLoop() {
                 //  float ndcX = (lm.x * 2.0f) - 1.0f;  
                 //  float ndcY = 1.0f - (lm.y * 2.0f);
 
-                float u = lm.x;
-                float v = lm.y;
-                float weight = weights[i++];
+                // float u = lm.x;
+                // float v = lm.y;
 
-                meshVertexData.push_back(ndcX);
-                meshVertexData.push_back(ndcY);
-                meshVertexData.push_back(u);
-                meshVertexData.push_back(v);
-                meshVertexData.push_back(weight);
+                projectedCoordinates.push_back(ndcX);
+                projectedCoordinates.push_back(ndcY);
+                // meshVertexData.push_back(u);
+                // meshVertexData.push_back(v);
              }
-            // eglManager_.DrawLandmarks(projectedCoordinates); this will draw a face mesh showing all of the landmarks.
-            eglManager_.DrawStrokeEffect(meshVertexData, textureId_);
+            eglManager_.DrawLandmarks(projectedCoordinates); 
         }
 
         // present comined camera frame

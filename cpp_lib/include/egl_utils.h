@@ -7,7 +7,6 @@
 #include <android/hardware_buffer.h>
 #include <unordered_map>
 #include <vector>
-#include "face_mesh_triangles.h"
 
 // function pointer variables declared in eglext.h and glext.h. Look at what comes after 'get', that is the purpose of these function pointers.
 extern PFNEGLGETNATIVECLIENTBUFFERANDROIDPROC fn_eglGetNativeClientBufferANDROID; // the ANativeWindow object
@@ -46,13 +45,8 @@ private:
     GLuint vbo_ = 0;
     GLint textureUniformLocation_ = -1;
     GLuint pointProgramId_ = 0;
-    GLuint meshProgramId_ = 0;
-    GLint meshTextureUniformLocation_ = -1;
-    //GLint meshGradeUniformLocation_ = -1;     
-    GLint meshDirectionUniformLocation_ = -1; 
     GLuint landmarkVao_ = 0;
     GLuint landmarkVbo_ = 0;
-    GLuint landmarkEbo_ = 0; // element array buffer.
 
     std::unordered_map<AHardwareBuffer *, EGLImageKHR> eglImageCache_;
 };
@@ -101,34 +95,6 @@ struct Shaders
                 discard;
             }
             outColor = vec4(0.0, 1.0, 0.0, 1.0); // Green
-        }
-    )glsl";
-    static constexpr const char *MESH_VERTEX_SOURCE = R"glsl(
-        #version 300 es
-        layout(location = 0) in vec2 a_position; // landmark positions
-        layout(location = 1) in vec2 a_texCoord; // UV texture coordinates
-        layout(location = 2) in float a_droopWeight; // Weight parameter for how much 'pull' on the face is exerted
-
-        uniform vec2 u_droopDirection;
-
-        out vec2 v_texCoord;
-
-        void main() {
-            float smoothWeight = smoothstep(0.1, 0.8, a_droopWeight);
-            vec2 offset = u_droopDirection * smoothWeight;
-            gl_Position = vec4(a_position + offset, 0.0, 1.0);
-            v_texCoord = a_texCoord;
-        }
-    )glsl";
-    static constexpr const char *MESH_FRAGMENT_SOURCE = R"glsl(
-        #version 300 es
-        #extension GL_OES_EGL_image_external_essl3 : require
-        precision mediump float;
-        in vec2 v_texCoord;
-        out vec4 outColor;
-        uniform samplerExternalOES u_texture;
-        void main() {
-            outColor = texture(u_texture, v_texCoord);
         }
     )glsl";
 };
