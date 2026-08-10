@@ -47,17 +47,17 @@ bool StrokeModelInference::InitializeModelFromBuffer(const void* modelData, size
 }
 
 bool StrokeModelInference::PredictStrokeLandmarks(
-    const std::vector<MpNormalizedLandmark>& rawLandmarks,
-    std::vector<MpNormalizedLandmark>& outStrokeLandmarks,
+    const std::vector<MpNormalizedLandmark>& landmarks,
+    std::vector<MpNormalizedLandmark>& strokeLandmarks,
     float intensity
 )
 {
-    if (!session_ || rawLandmarks.size() < 478) return false;
+    if (!session_ || landmarks.size() < 478) return false;
 
     // spacial invariance normalization
-    const auto& nose = rawLandmarks[4];
-    const auto& leftPupil = rawLandmarks[468];
-    const auto& rightPupil = rawLandmarks[473];
+    const auto& nose = landmarks[4];
+    const auto& leftPupil = landmarks[468];
+    const auto& rightPupil = landmarks[473];
 
     float centerX = nose.x;
     float centerY = nose.y;
@@ -70,9 +70,9 @@ bool StrokeModelInference::PredictStrokeLandmarks(
 
     // use formula (raw - center) / scale to normalize input landmark coordinates
     for (size_t i = 0; i < 478; ++i) {
-        inputTensorValues_[i * 3 + 0] = (rawLandmarks[i].x - centerX) / scale;
-        inputTensorValues_[i * 3 + 1] = (rawLandmarks[i].y - centerY) / scale;
-        inputTensorValues_[i * 3 + 2] = (rawLandmarks[i].z - centerZ) / scale;
+        inputTensorValues_[i * 3 + 0] = (landmarks[i].x - centerX) / scale;
+        inputTensorValues_[i * 3 + 1] = (landmarks[i].y - centerY) / scale;
+        inputTensorValues_[i * 3 + 2] = (landmarks[i].z - centerZ) / scale;
     }
 
     const char* inputNames[] = {"input_landmarks"};
@@ -110,9 +110,9 @@ bool StrokeModelInference::PredictStrokeLandmarks(
             prevDisplacement_[i * 3 + 1] = deltaY;
             prevDisplacement_[i * 3 + 2] = deltaZ;
         }
-        outStrokeLandmarks[i].x = rawLandmarks[i].x + deltaX;
-        outStrokeLandmarks[i].y = rawLandmarks[i].y + deltaY;
-        outStrokeLandmarks[i].z = rawLandmarks[i].z + deltaZ;
+        strokeLandmarks[i].x = landmarks[i].x + deltaX;
+        strokeLandmarks[i].y = landmarks[i].y + deltaY;
+        strokeLandmarks[i].z = landmarks[i].z + deltaZ;
     }
 
     isFirstFrame_ = false;

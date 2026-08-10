@@ -1,5 +1,6 @@
 #include "egl_utils.h"
 #include "mediapipe_face_mesh.h"
+#include "face_mesh_triangles.h"
 #include <unordered_map>
 #include <vector>
 
@@ -298,6 +299,43 @@ bool EGLManager::InitShaders() {
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
     glBindVertexArray(0); 
+
+    GLuint strokeVertexShader = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(strokeVertexShader, 1, &Shaders::STROKE_VERTEX_SOURCE, nullptr);
+    glCompileShader(strokeVertexShader);
+
+    GLuint strokeFragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(strokeFragmentShader, 1, &Shaders::STROKE_FRAGMENT_SOURCE, nullptr);
+    glCompileShader(strokeFragmentShader);
+    strokeProgramId_ = glCreateProgram();
+
+    glAttachShader(strokeProgramId_, strokeVertexShader);
+    glAttachShader(strokeProgramId_, strokeFragmentShader);
+    glLinkProgram(strokeProgramId_);
+    glDeleteShader(strokeVertexShader);
+    glDeleteShader(strokeFragmentShader);
+
+    strokeTextureUniformLocation_ = glGetUniformLocation(strokeProgramId_, "u_texture");
+
+    numTriangleIndices_ = static_cast<GLsizei>(NUM_FACE_INDICES);
+
+    glGenVertexArrays(1, &strokeVao_);
+    glGenBuffers(1, &strokeVbo_);
+    glGenBuffers(1, &strokeEbo_);
+    glBindVertexArray(strokeVao_);
+
+    glBindBuffer(GL_ARRAY_BUFFER, strokeVbo_);
+    glBufferData(GL_ARRAY_BUFFER, 478 * 4 * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, strokeEbo_);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(FACE_MESH_TRIANGLES), FACE_MESH_TRIANGLES, GL_STATIC_DRAW);
+
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+    glBindVertexArray(0);
     return true;
 }
 
@@ -327,4 +365,15 @@ void EGLManager::DrawLandmarks(const std::vector<float>& projectedCoordinates) {
 
 void EGLManager::DrawStrokeEffect(const std::vector<float> &meshVertexData, GLuint textureId) {
     if (meshVertexData.empty()) return;
+
+    glUseProgram(strokeProgramId_);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_EXTERNAL_OES, textureId);
+    glUniform1i(strokeTextureUniformLocation_, 0);
+    glBindVertexArray(strokeVao_);
+    glBindBuffer(GL_ARRAY_BUFFER, strokeVbo_);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, meshVertexData.size() * sizeof(float), meshVertexData.data());
+    
+    glDrawElements(GL_TRIANGLES, numTriangleIndices_, GL_UNSIGNED_SHORT, 0);
+    glBindVertexArray(0);
 }

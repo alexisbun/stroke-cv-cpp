@@ -88,25 +88,24 @@ void CameraEngine::renderLoop() {
 
         std::vector<MpNormalizedLandmark> landmarks;
         if (faceMesh.GetLatestLandmarks(landmarks)) {
-          std::vector<float> projectedCoordinates;
-          projectedCoordinates.reserve(landmarks.size() * 2);
-
-          for (const auto& lm : landmarks) {
-                float ndcX = 1.0f - (lm.y * 2.0f);
-                float ndcY = (lm.x * 2.0f) - 1.0f;
-
-                //  float ndcX = (lm.x * 2.0f) - 1.0f;  
-                //  float ndcY = 1.0f - (lm.y * 2.0f);
-
-                // float u = lm.x;
-                // float v = lm.y;
-
-                projectedCoordinates.push_back(ndcX);
-                projectedCoordinates.push_back(ndcY);
-                // meshVertexData.push_back(u);
-                // meshVertexData.push_back(v);
-             }
-            eglManager_.DrawLandmarks(projectedCoordinates); 
+          std::vector<MpNormalizedLandmark> strokeLandmarks;
+          if (strokeModelInference_.PredictStrokeLandmarks(landmarks, strokeLandmarks, strokeIntensity_)) {
+            
+            std::vector<float> meshVertexData;
+            meshVertexData.reserve(478 * 4);
+            
+            size_t i = 0;
+            for (const auto& lm : landmarks) {
+                const auto& stroke = strokeLandmarks[i++];
+                float dispNdcX = 1.0f - (stroke.y * 2.0f);
+                float dispNdcY = (stroke.x * 2.0f) - 1.0f;
+                meshVertexData.push_back(dispNdcX);
+                meshVertexData.push_back(dispNdcY);
+                meshVertexData.push_back(lm.x);
+                meshVertexData.push_back(lm.y);
+            }
+            eglManager_.DrawStrokeEffect(meshVertexData, textureId_);
+          }    
         }
 
         // present comined camera frame

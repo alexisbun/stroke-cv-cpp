@@ -30,6 +30,7 @@ public:
     void DrawTexture(GLuint textureId);
     void DrawLandmarks(const std::vector<float> &projectedCoordinates);
     void DrawStrokeEffect(const std::vector<float> &meshVertexData, GLuint textureId);
+
 private:
     EGLDisplay display_;
     EGLConfig config_;
@@ -47,6 +48,13 @@ private:
     GLuint pointProgramId_ = 0;
     GLuint landmarkVao_ = 0;
     GLuint landmarkVbo_ = 0;
+
+    GLuint strokeProgramId_ = 0;
+    GLuint strokeVao_ = 0;
+    GLuint strokeVbo_ = 0;
+    GLuint strokeEbo_ = 0;
+    GLint strokeTextureUniformLocation_ = 0;
+    GLsizei numTriangleIndices_ = 0;
 
     std::unordered_map<AHardwareBuffer *, EGLImageKHR> eglImageCache_;
 };
@@ -95,6 +103,27 @@ struct Shaders
                 discard;
             }
             outColor = vec4(0.0, 1.0, 0.0, 1.0); // Green
+        }
+    )glsl";
+    static constexpr const char *STROKE_VERTEX_SOURCE = R"glsl(
+        #version 300 es
+        layout(location = 0) in vec2 a_displacedPosition; 
+        layout(location = 1) in vec2 a_originalTexCoords; 
+        out vec2 v_texCoords;
+        void main() {
+            gl_Position = vec4(a_displacedPosition, 0.0, 1.0);
+            v_texCoords = a_originalTexCoords;
+        }
+    )glsl";
+    static constexpr const char *STROKE_FRAGMENT_SOURCE = R"glsl(
+        #version 300 es
+        #extension GL_OES_EGL_image_external_essl3 : require
+        precision mediump float;
+        in vec2 v_texCoords;
+        out vec4 outColor;
+        uniform samplerExternalOES u_texture;
+        void main() {
+            outColor = texture(u_texture, v_texCoords);
         }
     )glsl";
 };
