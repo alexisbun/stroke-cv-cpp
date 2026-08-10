@@ -31,7 +31,7 @@ extern "C" jint JNI_OnLoad(JavaVM *vm, void *reserved) {
 }
 extern "C" long long nativeAttach(void *env, void *surface, int32_t width,
                                   int32_t height) {
-  // 1. Cast the generic pointers back to JNI types
+  // Cast C pointers back to JNI types to extract surface.
   JNIEnv *jniEnv = reinterpret_cast<JNIEnv *>(env);
   jobject jniSurface = reinterpret_cast<jobject>(surface);
   if (jniEnv == nullptr || jniSurface == nullptr) {

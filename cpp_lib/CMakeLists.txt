@@ -57,7 +57,8 @@ add_library(${PROJECT_NAME} SHARED
     src/egl_utils.cpp 
     src/image_reader_handler.cpp 
     src/utils.cpp
-    src/mediapipe_face_mesh.cpp)
+    src/mediapipe_face_mesh.cpp
+    src/stroke_model_inference.cpp)
 
 find_library(android android)
 find_library(GLESv3 GLESv3)
@@ -80,7 +81,8 @@ target_link_libraries(${PROJECT_NAME}
 target_include_directories(${PROJECT_NAME} PUBLIC 
     include
     /home/alexis/mediapipe
-    /home/alexis/mediapipe/mediapipe/tasks/c/vision/face_landmarker)
+    /home/alexis/mediapipe/mediapipe/tasks/c/vision/face_landmarker
+    /home/alexis/git/onnxruntime/include/onnxruntime/core/session)
 
 if(MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE /W4)

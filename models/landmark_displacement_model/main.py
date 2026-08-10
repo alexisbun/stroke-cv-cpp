@@ -5,6 +5,12 @@ from gcn import LandmarkDisplacementModel
 import onnx
 import onnxscript
 
+FACE_OVAL_INDICES = [
+        10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288,
+        397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150, 136,
+        172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109
+]
+
 def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     dataset_path = "/home/alexis/Desktop/landmarks_dataset.pt"
@@ -17,6 +23,10 @@ def main():
     inputs = data.x.view(num_samples, 478, 3).to(device)
     targets = data.y.view(num_samples, 478, 3).to(device)
 
+    # to penalize the model from  moving face mesh indicies that are at the border of the face.
+    boundary_indices = torch.tensor(FACE_OVAL_INDICES, dtype=torch.long, device=device)
+    lambda_boundary = 20.0
+
     model = LandmarkDisplacementModel(adjacency_matrix=adj_matrix, hidden_dimension=128).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
@@ -27,7 +37,9 @@ def main():
     for epoch in range(1, 10001):
         optimizer.zero_grad()
         _, pred_delta = model(inputs)
-        loss = F.huber_loss(pred_delta, targets, delta=1.0)
+        huber_loss = F.huber_loss(pred_delta, targets, delta=1.0)
+        boundary_penalty = lambda_boundary * (pred_delta[:, boundary_indices, :] ** 2).mean()
+        loss = huber_loss + boundary_penalty
         loss.backward()
         optimizer.step()
         if epoch % 50 == 0 or epoch == 1:
