@@ -6,6 +6,7 @@
 #include <utils.h>
 
 extern FaceMesh faceMesh;
+extern StrokeModelInference strokeModelInference;
 
 CameraEngine::CameraEngine(ANativeWindow *window, int32_t width, int32_t height,
                            int32_t format)
@@ -88,8 +89,10 @@ void CameraEngine::renderLoop() {
 
         std::vector<MpNormalizedLandmark> landmarks;
         if (faceMesh.GetLatestLandmarks(landmarks)) {
+          // spdlog::debug("Face detected! Landmarks count: {}", landmarks.size());
           std::vector<MpNormalizedLandmark> strokeLandmarks;
-          if (strokeModelInference_.PredictStrokeLandmarks(landmarks, strokeLandmarks, strokeIntensity_)) {
+          if (strokeModelInference.PredictStrokeLandmarks(landmarks, strokeLandmarks, strokeIntensity_)) {
+            spdlog::debug("PredictStrokeLandmarks called!");
             
             std::vector<float> meshVertexData;
             meshVertexData.reserve(478 * 4);

@@ -82,7 +82,8 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     include
     /home/alexis/mediapipe
     /home/alexis/mediapipe/mediapipe/tasks/c/vision/face_landmarker
-    /home/alexis/git/onnxruntime/include/onnxruntime/core/session)
+    /home/alexis/git/onnxruntime/include/onnxruntime/core/session
+    )
 
 if(MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE /W4)

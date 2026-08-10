@@ -91,4 +91,31 @@ class CameraBindings {
           ffi.Pointer<ffi.Char>,
         )
       >();
+
+  void initStrokeModelFromAsset(
+    ffi.Pointer<ffi.Void> env_ptr,
+    ffi.Pointer<ffi.Void> j_asset_manager,
+    ffi.Pointer<ffi.Char> asset_name,
+  ) {
+    return _initStrokeModelFromAsset(env_ptr, j_asset_manager, asset_name);
+  }
+
+  late final _initStrokeModelFromAssetPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Pointer<ffi.Void>,
+            ffi.Pointer<ffi.Void>,
+            ffi.Pointer<ffi.Char>,
+          )
+        >
+      >('initStrokeModelFromAsset');
+  late final _initStrokeModelFromAsset = _initStrokeModelFromAssetPtr
+      .asFunction<
+        void Function(
+          ffi.Pointer<ffi.Void>,
+          ffi.Pointer<ffi.Void>,
+          ffi.Pointer<ffi.Char>,
+        )
+      >();
 }

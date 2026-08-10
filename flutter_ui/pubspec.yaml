@@ -37,3 +37,4 @@ flutter:
   uses-material-design: true
   assets: 
     - assets/face_landmarker.task
+    - assets/landmark_displacement_model.onnx 

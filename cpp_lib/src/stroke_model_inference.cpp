@@ -54,6 +54,8 @@ bool StrokeModelInference::PredictStrokeLandmarks(
 {
     if (!session_ || landmarks.size() < 478) return false;
 
+    strokeLandmarks.resize(landmarks.size());
+
     // spacial invariance normalization
     const auto& nose = landmarks[4];
     const auto& leftPupil = landmarks[468];

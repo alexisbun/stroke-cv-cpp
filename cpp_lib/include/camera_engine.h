@@ -48,8 +48,7 @@ private:
   AImage *pendingImage_;
   AHardwareBuffer *pendingBuffer_;
 
-  StrokeModelInference strokeModelInference_;
-  float strokeIntensity_ = 1.0f;  
+  float strokeIntensity_ = 1.0f;
 
   std::chrono::high_resolution_clock::time_point lastWriteTime_;
   double currentFps_ = 0;

@@ -34,7 +34,7 @@ def main():
 
     model.train()
 
-    for epoch in range(1, 10001):
+    for epoch in range(1, 4001):
         optimizer.zero_grad()
         _, pred_delta = model(inputs)
         huber_loss = F.huber_loss(pred_delta, targets, delta=1.0)
@@ -63,6 +63,8 @@ def main():
             'displacement_deltas': {0: 'batch_size'}
         }
     )
+    model_proto = onnx.load(onnx_path)
+    onnx.save_model(model_proto, onnx_path, save_as_external_data=False)
 
     print(f"Saved ONNX model to {onnx_path}")
 
