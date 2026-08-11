@@ -12,8 +12,8 @@ class LandmarkDisplacementModel(nn.Module):
         self.conv3 = DenseGCNConv(hidden_dimension, 3)
 
     def forward(self, pos):
-        h = F.relu(self.conv1(pos, self.adj))
-        h = F.relu(self.conv2(h, self.adj))
-        delta_x = self.conv3(h, self.adj)
+        h1 = F.relu(self.conv1(pos, self.adj))
+        h2 = F.relu(self.conv2(h1, self.adj)) + h1
+        delta_x = self.conv3(h2, self.adj)
 
         return pos + delta_x, delta_x

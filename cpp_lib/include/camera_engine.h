@@ -48,8 +48,6 @@ private:
   AImage *pendingImage_;
   AHardwareBuffer *pendingBuffer_;
 
-  float strokeIntensity_ = 1.0f;
-
   std::chrono::high_resolution_clock::time_point lastWriteTime_;
   double currentFps_ = 0;
   bool isFirstFrame_ = true;

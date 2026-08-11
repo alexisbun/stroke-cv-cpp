@@ -91,7 +91,7 @@ void CameraEngine::renderLoop() {
         if (faceMesh.GetLatestLandmarks(landmarks)) {
           // spdlog::debug("Face detected! Landmarks count: {}", landmarks.size());
           std::vector<MpNormalizedLandmark> strokeLandmarks;
-          if (strokeModelInference.PredictStrokeLandmarks(landmarks, strokeLandmarks, strokeIntensity_)) {
+          if (strokeModelInference.PredictStrokeLandmarks(landmarks, strokeLandmarks, 1.0f)) {
             spdlog::debug("PredictStrokeLandmarks called!");
             
             std::vector<float> meshVertexData;

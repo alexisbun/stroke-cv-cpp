@@ -28,11 +28,10 @@ private:
     std::vector<float> inputTensorValues_;
     std::vector<float> outputDeltaValues_;
     std::vector<float> boundaryWeights_;
-    std::vector<float> prevDisplacement_;
-    float strokeIntensity_ = 1.0f;  
+    std::vector<float> prevDisplacement_;  
 
     bool isFirstFrame_ = true;
-    float smoothingAlpha_ = 0.2f;
+    float smoothingAlpha_ = 0.12f;
 
     void InitializeBoundaryWeights();
 };

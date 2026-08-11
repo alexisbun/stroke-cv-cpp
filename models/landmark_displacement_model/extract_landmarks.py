@@ -123,18 +123,22 @@ def generate_dataset_pt(npz_path="/home/alexis/Desktop/landmarks.npz", save_path
 
     edge_index = graph_connectivity()
 
+    rigid_anchors = [10, 6, 234, 454, 33, 263]
+
     # coordinate normalization
     data_list = []
     for i in range(len(normal_coords)):
         norm_raw = torch.tensor(normal_coords[i], dtype=torch.float)
         alt_raw = torch.tensor(altered_coords[i], dtype=torch.float)
 
-        center = norm_raw[4:5, :]
+        global_translation = alt_raw[rigid_anchors].mean(0) - norm_raw[rigid_anchors].mean(0)
+        alt_raw_aligned = alt_raw - global_translation
 
+        center = norm_raw[4:5, :]
         scale = torch.norm(norm_raw[468] - norm_raw[473], p=2)
 
-        x_norm = (norm_raw - center)/scale
-        alt_norm = (alt_raw - center)/scale
+        x_norm = (norm_raw - center) / scale
+        alt_norm = (alt_raw_aligned - center) / scale
 
         y_displacement = alt_norm - x_norm
 
