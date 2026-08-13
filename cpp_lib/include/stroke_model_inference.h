@@ -16,8 +16,7 @@ public:
 
     bool PredictStrokeLandmarks(
         const std::vector<MpNormalizedLandmark>& rawInputLandmarks,
-        std::vector<MpNormalizedLandmark>& outStrokeLandmarks,
-        float intensity = 1.0f);
+        std::vector<MpNormalizedLandmark>& outStrokeLandmarks);
 
 private:
     Ort::Env env_{ORT_LOGGING_LEVEL_WARNING, "StrokeModelInference"};
@@ -31,7 +30,7 @@ private:
     std::vector<float> prevDisplacement_;  
 
     bool isFirstFrame_ = true;
-    float smoothingAlpha_ = 0.12f;
+    float smoothingAlpha_ = 0.20f;
 
     void InitializeBoundaryWeights();
 };

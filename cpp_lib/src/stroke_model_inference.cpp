@@ -7,7 +7,7 @@ StrokeModelInference::StrokeModelInference()
     inputTensorValues_.resize(1 * 478 * 3, 0.0f);
     outputDeltaValues_.resize(1 * 478 * 3, 0.0f);
     prevDisplacement_.resize(478 * 3, 0.0f);
-    InitializeBoundaryWeights(); 
+    // InitializeBoundaryWeights(); 
 }
 
 void StrokeModelInference::InitializeBoundaryWeights()
@@ -17,19 +17,10 @@ void StrokeModelInference::InitializeBoundaryWeights()
     const std::vector<int> faceOvalIndicies = {
         10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288,
         397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150, 136,
-        172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109,
-        151, 337, 298, 333, 299, 334, 296, 336, 285, 8, 55, 107,
-        66, 105, 63, 70, 104, 69, 108, 175, 199, 200, 18, 83,
-        17, 314, 405, 421, 9,
-        33, 7, 163, 144, 145, 153, 154, 155, 133, 246, 161, 160,
-        159, 158, 157, 173, 263, 249, 390, 373, 374, 380, 381, 382,
-        362, 466, 388, 387, 386, 385, 384, 398, 468, 469, 470, 471,
-        472, 473, 474, 475, 476, 477, 46, 53, 52, 65, 70, 63, 105,
-        66, 107, 276, 283, 282, 295, 300, 293, 334, 296, 336,
-        168, 6, 197, 195, 5, 4, 1, 19, 94, 2
+        172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109
     };
 
-    // ensure that stroke effect isn't applied at face boundry indicies 
+    // ensure that stroke effect isn't applied at outer face boundary indices 
     for (int i : faceOvalIndicies) {
         if (i >= 0 && i < 478) {
              boundaryWeights_[i] = 0.0f;
@@ -57,8 +48,7 @@ bool StrokeModelInference::InitializeModelFromBuffer(const void* modelData, size
 
 bool StrokeModelInference::PredictStrokeLandmarks(
     const std::vector<MpNormalizedLandmark>& landmarks,
-    std::vector<MpNormalizedLandmark>& strokeLandmarks,
-    float intensity
+    std::vector<MpNormalizedLandmark>& strokeLandmarks
 )
 {
     if (!session_ || landmarks.size() < 478) return false;
@@ -74,15 +64,22 @@ bool StrokeModelInference::PredictStrokeLandmarks(
     float centerY = nose.y;
     float centerZ = nose.z;
 
+    float centerUprightX = nose.y;
+    float centerUprightY = 1.0f - nose.x;
+
     float dx = leftPupil.x - rightPupil.x;
     float dy = leftPupil.y - rightPupil.y;
-    float scale = std::sqrt(dx * dx + dy * dy);
-    if (scale < 1e-6f) scale = 1e-6f;
+    float dz = leftPupil.z - rightPupil.z;
+    float scale = std::sqrt(dx * dx + dy * dy + dz * dz);
+
+    
 
     // use formula (raw - center) / scale to normalize input landmark coordinates
     for (size_t i = 0; i < 478; ++i) {
-        inputTensorValues_[i * 3 + 0] = (landmarks[i].x - centerX) / scale;
-        inputTensorValues_[i * 3 + 1] = (landmarks[i].y - centerY) / scale;
+        float uprightX = landmarks[i].y;
+        float uprightY = 1.0f - landmarks[i].x;
+        inputTensorValues_[i * 3 + 0] = (uprightX - centerUprightX) / scale;
+        inputTensorValues_[i * 3 + 1] = (uprightY - centerUprightY) / scale;
         inputTensorValues_[i * 3 + 2] = (landmarks[i].z - centerZ) / scale;
     }
 
@@ -100,32 +97,32 @@ bool StrokeModelInference::PredictStrokeLandmarks(
     );
 
     float* rawDeltaPtr = outputTensors[1].GetTensorMutableData<float>();
-    float clampedIntensity = std::clamp(intensity, 0.0f, 3.0f);
 
     for (size_t i = 0; i < 478; ++i) {
         // un-normalize landmark coordinates
-        float weight = boundaryWeights_[i] * clampedIntensity;
-        float deltaX = rawDeltaPtr[i * 3 + 0] * scale * weight;
-        float deltaY = rawDeltaPtr[i * 3 + 1] * scale * weight;
-        float deltaZ = rawDeltaPtr[i * 3 + 2] * scale * weight;
+        float deltaX_upright = rawDeltaPtr[i * 3 + 0] * scale;
+        float deltaY_upright = rawDeltaPtr[i * 3 + 1] * scale;
+        float deltaZ = rawDeltaPtr[i * 3 + 2] * scale;
+
+        float deltaX_cam = -deltaY_upright;
+        float deltaY_cam =  deltaX_upright;
         if (isFirstFrame_) {
-            prevDisplacement_[i * 3 + 0] = deltaX;
-            prevDisplacement_[i * 3 + 1] = deltaY;
+            prevDisplacement_[i * 3 + 0] = deltaX_cam;
+            prevDisplacement_[i * 3 + 1] = deltaY_cam;
             prevDisplacement_[i * 3 + 2] = deltaZ;
         } else {
             // apply exponential moving average filter to prevent jitter effect (smoothingAlpha_ = 0.2f)
-            deltaX = smoothingAlpha_ * deltaX + (1.0f - smoothingAlpha_) * prevDisplacement_[i * 3 + 0];
-            deltaY = smoothingAlpha_ * deltaY + (1.0f - smoothingAlpha_) * prevDisplacement_[i * 3 + 1];
+            deltaX_cam = smoothingAlpha_ * deltaX_cam + (1.0f - smoothingAlpha_) * prevDisplacement_[i * 3 + 0];
+            deltaY_cam = smoothingAlpha_ * deltaY_cam + (1.0f - smoothingAlpha_) * prevDisplacement_[i * 3 + 1];
             deltaZ = smoothingAlpha_ * deltaZ + (1.0f - smoothingAlpha_) * prevDisplacement_[i * 3 + 2];
-            prevDisplacement_[i * 3 + 0] = deltaX;
-            prevDisplacement_[i * 3 + 1] = deltaY;
+            prevDisplacement_[i * 3 + 0] = deltaX_cam;
+            prevDisplacement_[i * 3 + 1] = deltaY_cam;
             prevDisplacement_[i * 3 + 2] = deltaZ;
         }
-        strokeLandmarks[i].x = landmarks[i].x + deltaX;
-        strokeLandmarks[i].y = landmarks[i].y + deltaY;
+        strokeLandmarks[i].x = landmarks[i].x + deltaX_cam;
+        strokeLandmarks[i].y = landmarks[i].y + deltaY_cam;
         strokeLandmarks[i].z = landmarks[i].z + deltaZ;
     }
-
     isFirstFrame_ = false;
     return true;
 }

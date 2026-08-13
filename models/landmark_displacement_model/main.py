@@ -11,6 +11,11 @@ FACE_OVAL_INDICES = [
     172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109
 ]
 
+EYE_INDICES = [
+    33, 7, 163, 144, 145, 153, 154, 155, 133, 246, 161, 160, 159, 158, 157, 173, 468, 469, 470, 471, 472,
+    263, 249, 390, 373, 374, 380, 381, 382, 362, 466, 388, 387, 386, 385, 384, 398, 473, 474, 475, 476, 477
+]
+
 def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     dataset_path = "/home/alexis/Desktop/landmarks_dataset.pt"
@@ -23,9 +28,11 @@ def main():
     inputs = data.x.view(num_samples, 478, 3).to(device)
     targets = data.y.view(num_samples, 478, 3).to(device)
 
-    # to penalize the model from  moving face mesh indicies that are at the border of the face.
+    # to penalize the model from moving face mesh indices that are at the border of the face or eyes
     boundary_indices = torch.tensor(FACE_OVAL_INDICES, dtype=torch.long, device=device)
-    lambda_boundary = 1.0
+    eye_indices = torch.tensor(EYE_INDICES, dtype=torch.long, device=device)
+    lambda_boundary = 1.5
+    lambda_eye = 2.0
 
     model = LandmarkDisplacementModel(adjacency_matrix=adj_matrix, hidden_dimension=128).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=5e-4, weight_decay=1e-4)
@@ -35,17 +42,18 @@ def main():
 
     model.train()
 
-    for epoch in range(1, 501):
+    for epoch in range(1, 5001):
         optimizer.zero_grad()
         _, pred_delta = model(inputs)
         huber_loss = F.huber_loss(pred_delta, targets, delta=0.5)
         boundary_penalty = lambda_boundary * (pred_delta[:, boundary_indices, :] ** 2).mean()
-        loss = huber_loss + boundary_penalty
+        eye_penalty = lambda_eye * (pred_delta[:, eye_indices, :] ** 2).mean()
+        loss = huber_loss + boundary_penalty + eye_penalty
         loss.backward()
         optimizer.step()
         scheduler.step()
         if epoch % 50 == 0 or epoch == 1:
-            print(f"Epoch {epoch:03d} | Huber Loss: {loss.item():.6f}")
+            print(f"Epoch {epoch:03d} | Total Loss: {loss.item():.6f} (Huber: {huber_loss.item():.6f}, Eye Penalty: {eye_penalty.item():.6f})")
 
     model.eval()
     example_input = torch.randn(1, 478, 3, device=device)

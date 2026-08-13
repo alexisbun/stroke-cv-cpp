@@ -89,9 +89,8 @@ void CameraEngine::renderLoop() {
 
         std::vector<MpNormalizedLandmark> landmarks;
         if (faceMesh.GetLatestLandmarks(landmarks)) {
-          // spdlog::debug("Face detected! Landmarks count: {}", landmarks.size());
           std::vector<MpNormalizedLandmark> strokeLandmarks;
-          if (strokeModelInference.PredictStrokeLandmarks(landmarks, strokeLandmarks, 1.0f)) {
+          if (strokeModelInference.PredictStrokeLandmarks(landmarks, strokeLandmarks)) {
             spdlog::debug("PredictStrokeLandmarks called!");
             
             std::vector<float> meshVertexData;
@@ -100,10 +99,8 @@ void CameraEngine::renderLoop() {
             size_t i = 0;
             for (const auto& lm : landmarks) {
                 const auto& stroke = strokeLandmarks[i++];
-                float dispNdcX = 1.0f - (stroke.y * 2.0f);
-                float dispNdcY = (stroke.x * 2.0f) - 1.0f;
-                meshVertexData.push_back(dispNdcX);
-                meshVertexData.push_back(dispNdcY);
+                meshVertexData.push_back(1.0f - (stroke.y * 2.0f)); // stroke.x
+                meshVertexData.push_back((stroke.x * 2.0f) - 1.0f); // stroke.y
                 meshVertexData.push_back(lm.x);
                 meshVertexData.push_back(lm.y);
             }
