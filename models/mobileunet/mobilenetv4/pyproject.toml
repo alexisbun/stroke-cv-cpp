@@ -1,15 +1,14 @@
 [project]
-name = "landmark-displacement-model"
+name = "mobilenetv4"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
     "mediapipe>=1.0.1",
-    "numpy>=2.5.1",
-    "onnxruntime>=1.28.0",
+    "numpy>=2.5.2",
+    "onnxruntime>=1.29.0",
     "onnxscript>=0.7.1",
     "opencv-python>=5.0.0.93",
     "torch>=2.13.0",
-    "torch-geometric>=2.8.0.post1",
 ]
