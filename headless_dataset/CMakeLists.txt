@@ -49,7 +49,8 @@ find_package(spdlog REQUIRED)
 add_executable(${PROJECT_NAME} 
     src/dataset_generation.cpp
     src/face_mesh.cpp
-    src/opengl_manager.cpp)
+    src/opengl_manager.cpp
+    src/stroke_model_inference.cpp)
 
 # need to compile mp face landmarker in bazel, get open gl libraries for linux, libraries similar to libyuv?
 target_link_libraries(${PROJECT_NAME}
