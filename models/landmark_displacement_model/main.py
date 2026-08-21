@@ -31,7 +31,7 @@ def main():
     # to penalize the model from moving face mesh indices that are at the border of the face or eyes
     boundary_indices = torch.tensor(FACE_OVAL_INDICES, dtype=torch.long, device=device)
     eye_indices = torch.tensor(EYE_INDICES, dtype=torch.long, device=device)
-    lambda_boundary = 1.5
+    lambda_boundary = 0.25
     lambda_eye = 2.0
 
     model = LandmarkDisplacementModel(adjacency_matrix=adj_matrix, hidden_dimension=128).to(device)

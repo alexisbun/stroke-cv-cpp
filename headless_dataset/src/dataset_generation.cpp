@@ -14,14 +14,15 @@
 #include "stroke_model_inference.h"
 #include "face_mesh_triangles.h"
 #include "headless_gl_manager.h"
+#include <spdlog/spdlog.h>
 
 struct BoundingBox {
     int x, y, size;
 }; // for cropping the ROI
 
 bool GenerateTriplet(const std:: string& originalPath, const std:: string& syntheticPath, 
-    const std:: string& warpedPath, const std:: string& filename,  int width=256, int height=256, 
-    FaceMesh facemesh, StrokeModelInference strokeInference, HeadlessGLManager glContext) 
+    const std:: string& warpedPath, const std:: string& filename, FaceMesh& facemesh, StrokeModelInference& strokeInference, 
+    HeadlessGLManager& glContext, int width=256, int height=256) 
 {
     // Plan:
     // Load images using stb_image
@@ -43,6 +44,6 @@ void CropAndResize()
 }
 
 int main() {
-
+    spdlog::info("im so tired, ily fred <3");
     return 0;
 }

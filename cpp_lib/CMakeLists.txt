@@ -73,7 +73,7 @@ target_link_libraries(${PROJECT_NAME}
         ${EGL}        
         ${mediandk}  
         ${camera2ndk}
-        /home/alexis/git/mediapipe/bazel-bin/mediapipe/tasks/c/vision/face_landmarker/libface_landmarker.so
+        /home/alexis/git/stroke-cv-cpp/flutter_ui/android/app/src/main/jniLibs/arm64-v8a/libface_landmarker.so
         /home/alexis/git/stroke-cv-cpp/flutter_ui/android/app/src/main/jniLibs/arm64-v8a/libonnxruntime.so
         yuv
 )

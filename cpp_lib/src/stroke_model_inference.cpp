@@ -7,7 +7,7 @@ StrokeModelInference::StrokeModelInference()
     inputTensorValues_.resize(1 * 478 * 3, 0.0f);
     outputDeltaValues_.resize(1 * 478 * 3, 0.0f);
     prevDisplacement_.resize(478 * 3, 0.0f);
-    // InitializeBoundaryWeights(); 
+    //InitializeBoundaryWeights(); 
 }
 
 void StrokeModelInference::InitializeBoundaryWeights()

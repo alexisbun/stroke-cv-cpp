@@ -44,19 +44,40 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+find_package(OpenGL REQUIRED)
 find_package(spdlog REQUIRED)
+find_package(Stb REQUIRED)
+
+set(MEDIAPIPE_INCLUDE_DIR "/home/alexis/git/mediapipe")
+set(MEDIAPIPE_LIB_DIR "/home/alexis/git/mediapipe/bazel-bin/mediapipe/tasks/c/vision/face_landmarker")
+set(ONNXRUNTIME_INCLUDE_DIR "/home/alexis/git/onnxruntime/include/onnxruntime/core/session")
+set(ONNXRUNTIME_LIB_DIR "/usr/local/lib")
 
 add_executable(${PROJECT_NAME} 
     src/dataset_generation.cpp
     src/face_mesh.cpp
-    src/opengl_manager.cpp
-    src/stroke_model_inference.cpp)
-
-# need to compile mp face landmarker in bazel, get open gl libraries for linux, libraries similar to libyuv?
-target_link_libraries(${PROJECT_NAME}
-        spdlog::spdlog
+    src/headless_gl_manager.cpp
+    src/stroke_model_inference.cpp
 )
 
-target_include_directories(${PROJECT_NAME} PUBLIC 
+# need to compile mp face landmarker in bazel, get open gl libraries for linux
+target_link_libraries(${PROJECT_NAME} PRIVATE
+    OpenGL::GL
+    OpenGL::EGL
+    spdlog::spdlog
+    ${MEDIAPIPE_LIB_DIR}/libface_landmarker.so
+    ${ONNXRUNTIME_LIB_DIR}/libonnxruntime.so
+)
+
+target_include_directories(${PROJECT_NAME} PRIVATE
     include
-    )
+    ${Stb_INCLUDE_DIR}
+    ${MEDIAPIPE_INCLUDE_DIR},
+    ${ONNXRUNTIME_INCLUDE_DIR},
+)
+
+if(MSVC)
+    target_compile_options(${PROJECT_NAME} PRIVATE /W4)
+else()
+    target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic)
+endif()
