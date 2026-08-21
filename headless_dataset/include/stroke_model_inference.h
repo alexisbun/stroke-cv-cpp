@@ -12,6 +12,6 @@ class StrokeModelInference
         ~StrokeModelInference() = default;
 
         bool InitializeModelFromBuffer(const void* modelData, size_t modelSize);
-        // bool PredictStrokeLandmarks(const std::vector<MpNormalizedLandmark>& rawInputLandmarks, std::vector<MpNormalizedLandmark>& outStrokeLandmarks);
+        bool PredictStrokeLandmarks(const std::vector<MpNormalizedLandmark>& rawInputLandmarks, std::vector<MpNormalizedLandmark>& outStrokeLandmarks);
     private:
 };
