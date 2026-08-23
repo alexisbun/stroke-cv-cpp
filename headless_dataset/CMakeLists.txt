@@ -72,8 +72,8 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 target_include_directories(${PROJECT_NAME} PRIVATE
     include
     ${Stb_INCLUDE_DIR}
-    ${MEDIAPIPE_INCLUDE_DIR},
-    ${ONNXRUNTIME_INCLUDE_DIR},
+    ${MEDIAPIPE_INCLUDE_DIR}
+    ${ONNXRUNTIME_INCLUDE_DIR}
 )
 
 if(MSVC)
