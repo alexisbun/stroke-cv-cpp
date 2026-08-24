@@ -3,6 +3,7 @@
 #include <spdlog/spdlog.h>
 #include <algorithm>
 #include <cstddef>
+#include <cstring>
 
 HeadlessGLManager::HeadlessGLManager() 
 {
@@ -270,6 +271,17 @@ bool HeadlessGLManager::RenderWarpedImage(
 
     outWarped.resize(width * height * 4);
     glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, outWarped.data());
+
+    // Flip OpenGL bottom-left buffer vertically (for stbi_load)
+    const int rowBytes = width * 4;
+    std::vector<uint8_t> tempRow(rowBytes);
+    for (int y = 0; y < height / 2; ++y) {
+        uint8_t* top = outWarped.data() + y * rowBytes;
+        uint8_t* bottom = outWarped.data() + (height - 1 - y) * rowBytes;
+        std::memcpy(tempRow.data(), top, rowBytes);
+        std::memcpy(top, bottom, rowBytes);
+        std::memcpy(bottom, tempRow.data(), rowBytes);
+    }
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     return true;

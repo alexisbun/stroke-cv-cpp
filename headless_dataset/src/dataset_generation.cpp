@@ -4,6 +4,10 @@
 #include <algorithm>
 #include <cmath>
 #include <chrono>
+#include <map>
+#include <regex>
+#include <iomanip>
+#include <sstream>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -154,7 +158,7 @@ bool GenerateTriplet(
     // Detect landmarks
     std::vector<MpNormalizedLandmark> rawLandmarks;
     if (!faceMesh.DetectLandmarks(origData, origWidth, origHeight, rawLandmarks)) {
-        spdlog::info("Skipping {}: FaceMesh landmark detection failed for {}", filename);
+        spdlog::info("Skipping {}: FaceMesh landmark detection failed", filename);
         stbi_image_free(origData);
         stbi_image_free(synthData);
         return false;
@@ -162,7 +166,7 @@ bool GenerateTriplet(
 
     std::vector<MpNormalizedLandmark> synthLandmarks;
     if (!faceMesh.DetectLandmarks(synthData, synthWidth, synthHeight, synthLandmarks)) {
-        spdlog::warn("Skipping {}: Synthetic FaceMesh detection failed ({})", filename);
+        spdlog::warn("Skipping {}: Synthetic FaceMesh detection failed", filename);
         stbi_image_free(origData);
         stbi_image_free(synthData);
         return false;
@@ -229,16 +233,15 @@ bool GenerateTriplet(
 int main() {
     spdlog::info("Starting headless dataset pipeline");
 
-    std::string origPath = "";
-    std::string synthDir = "";
-    std::string outputDir = "";
+    const std::string inputDir = "/home/alexis/Desktop/synthetic-dataset/ComfyUI/output/cfd_target";
+    const std::string outputDir = "/home/alexis/Desktop/synthetic-dataset/headless_dataset";
 
-    std::string modelTaskPath = "";
-    std::string onnxModelPath = "";
+    const std::string facelandmarkerPath = "/home/alexis/git/stroke-cv-cpp/flutter_ui/assets/face_landmarker.task";
+    const std::string onnxModelPath = "/home/alexis/git/stroke-cv-cpp/flutter_ui/assets/landmark_displacement_model.onnx";
 
-    std::string outOrigDir = outputDir + "/original_cropped";
-    std::string outWarpDir = outputDir + "/warped_cropped";
-    std::string outSynthDir = outputDir + "/liveportrait_cropped";
+    const std::string outOrigDir = outputDir + "/original_cropped";
+    const std::string outWarpDir = outputDir + "/warped_cropped";
+    const std::string outSynthDir = outputDir + "/liveportrait_cropped";
 
     fs::create_directories(outOrigDir);
     fs::create_directories(outWarpDir);
@@ -247,7 +250,7 @@ int main() {
     spdlog::info("Initializing MediaPipe Face Landmarker...");
     FaceMesh faceMesh;
 
-    if (!faceMesh.InitializeFaceLandmarker(modelTaskPath)) {
+    if (!faceMesh.InitializeFaceLandmarker(facelandmarkerPath)) {
         spdlog::error("MediaPipe initialization failed: {}", faceMesh.GetError());
         return -1;
     }
@@ -266,54 +269,69 @@ int main() {
         return -1;
     }
 
+    spdlog::info("Scanning input directory for paired images: {}", inputDir);
+    std::regex filePattern(R"(result_(\d+)_.*)");
+    std::map<int, fs::path> indexedFiles;
+
+    for (const auto& entry : fs::directory_iterator(inputDir)) {
+        if (!entry.is_regular_file()) continue;
+        std::string filename = entry.path().filename().string();
+        std::smatch match;
+        if (std::regex_match(filename, match, filePattern)) {
+            int idx = std::stoi(match[1].str());
+            indexedFiles[idx] = entry.path();
+        }
+    }
+
+    spdlog::info("Found {} total indexed files in {}", indexedFiles.size(), inputDir);
+
     spdlog::info("Starting batch triplet generation...");
     int processedCount = 0;
     int failureCount = 0;
     auto startTime = std::chrono::high_resolution_clock::now();
 
-    for (const auto& entry : fs::directory_iterator(origPath)) {
-        if (!entry.is_regular_file()) continue;
-        std::string fileStem  = entry.path().stem().string();
-        std::string origFile  = entry.path().string();
-        std::string synthFile = (fs::path(synthDir) / entry.path().filename()).string();
-        // Match synthetic image even if extensions differ (.jpg vs .png)
-        if (!fs::exists(synthFile)) {
-            bool foundAlt = false;
-            for (const auto& ext : {".png", ".jpg", ".jpeg", ".PNG", ".JPG"}) {
-                std::string altFile = (fs::path(synthDir) / (fileStem + ext)).string();
-                if (fs::exists(altFile)) {
-                    synthFile = altFile;
-                    foundAlt = true;
-                    break;
-                }
-            }
-            if (!foundAlt) {
-                spdlog::warn("Missing synthetic pair for: {}", fileStem);
-                failureCount++;
-                continue;
-            }
+    for (const auto& [idx, origPath] : indexedFiles) {
+        if (idx % 2 == 0) continue; // Process pairs starting from odd indices (original images)
+
+        int synthIdx = idx + 1;
+        auto it = indexedFiles.find(synthIdx);
+        if (it == indexedFiles.end()) {
+            spdlog::warn("Missing synthetic pair for index {} (expected {})", idx, synthIdx);
+            failureCount++;
+            continue;
         }
+
+        int pairIndex = (idx + 1) / 2;
+        std::ostringstream oss;
+        oss << "sample_" << std::setw(5) << std::setfill('0') << pairIndex;
+        std::string filename = oss.str();
+
+        std::string origFile = origPath.string();
+        std::string synthFile = it->second.string();
+
         bool success = GenerateTriplet(
             origFile,
             synthFile,
             outOrigDir,
             outWarpDir,
             outSynthDir,
-            fileStem,
+            filename,
             faceMesh,
             strokeInference,
             glManager,
             256
         );
+
         if (success) {
             processedCount++;
-            if (processedCount % 50 == 0) {
+            if (processedCount % 25 == 0) {
                 spdlog::info("Progress: Generated {} triplets...", processedCount);
             }
         } else {
             failureCount++;
         }
     }
+
     auto endTime = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = endTime - startTime;
     spdlog::info("=========================================");
@@ -322,7 +340,6 @@ int main() {
     spdlog::info("Failed / Skipped:       {} samples", failureCount);
     spdlog::info("Total Elapsed Time:     {:.2f} seconds", elapsed.count());
     spdlog::info("=========================================");
-
 
     return 0;
 }
