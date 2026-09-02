@@ -13,12 +13,12 @@
 struct Shaders {
     static constexpr const char* VERTEX_SOURCE = R"glsl(
         #version 330 core
-        layout(location = 0) in vec4 position;
-        layout(location = 1) in vec2 position;
+        layout(location = 0) in vec4 a_position;
+        layout(location = 1) in vec2 a_texCoords;
         out vec2 v_texCoords;
         void main() {
-            gl_Position = position;
-            v_texCoords = textCoords;
+            gl_Position = vec4(a_position, 0.0, 1.0);
+            v_texCoords = a_texCoords;
         }
     )glsl";
 

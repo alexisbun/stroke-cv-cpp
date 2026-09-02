@@ -130,7 +130,9 @@ GLuint HeadlessGLManager::compileShader(GLenum type, const char* source) {
     GLint success;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
     if (!success) {
+        spdlog::info("Shader compile failed.");
         glDeleteShader(shader);
+        return 0;
     }
     return shader;
 }

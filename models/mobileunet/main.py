@@ -1,5 +1,5 @@
 def main():
-    print("Hello from mobilenetv4!")
+    print("Hello from mobileunet!")
 
 
 if __name__ == "__main__":

@@ -234,7 +234,7 @@ int main() {
     spdlog::info("Starting headless dataset pipeline");
 
     const std::string inputDir = "/home/alexis/Desktop/synthetic-dataset/ComfyUI/output/cfd_target";
-    const std::string outputDir = "/home/alexis/Desktop/synthetic-dataset/headless_dataset";
+    const std::string outputDir = "/home/alexis/Desktop/synthetic-dataset/triplet_dataset";
 
     const std::string facelandmarkerPath = "/home/alexis/git/stroke-cv-cpp/flutter_ui/assets/face_landmarker.task";
     const std::string onnxModelPath = "/home/alexis/git/stroke-cv-cpp/flutter_ui/assets/landmark_displacement_model.onnx";
@@ -334,12 +334,12 @@ int main() {
 
     auto endTime = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = endTime - startTime;
-    spdlog::info("=========================================");
+    
     spdlog::info("Dataset Generation Complete");
     spdlog::info("Successfully Generated: {} triplets", processedCount);
     spdlog::info("Failed / Skipped:       {} samples", failureCount);
     spdlog::info("Total Elapsed Time:     {:.2f} seconds", elapsed.count());
-    spdlog::info("=========================================");
+    
 
     return 0;
 }
