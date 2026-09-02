@@ -36,9 +36,9 @@ class Decoder(nn.Module):
             nn.BatchNorm2d(out_channels),
             nn.ReLU6(inplace=True),
         )
-        self.residual = DepthwiseSeparableConv(out_channels, out_channels)
+        self.residual = DepthwiseSeparableConv(out_channels, out_channels) # refine after merging encoder-decoder with 3x3 convolution
     def forward(self, x, skip):
-        x = self.skip_connection(torch.cat([self.upsample(x), skip], dim=1)) # refine after merging encoder-decoder with 3x3 convolution
+        x = self.skip_connection(torch.cat([self.upsample(x), skip], dim=1)) 
         return x + self.residual(x)
 
 
