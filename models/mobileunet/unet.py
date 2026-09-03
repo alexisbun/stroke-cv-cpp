@@ -59,30 +59,35 @@ class MobileNetV4UNet(nn.Module):
         )
         enc = list(self.encoder.feature_info.channels())  # [32, 32, 64, 96, 960]
 
-        self.encoder.blocks[4] = nn.Identity()
+        # Set the 4th block of the encoder layer to a identity function (effectivly deleting the 4th encoder block, 
+        # which previously would expand the number of channels to 960 and would be computationally expensive).
+        self.encoder.blocks[4] = nn.Identity() 
         enc[4] = 128
 
+        # register_buffer saves mean and std (not as parameters) inside of the module's state (so they move to the GPU and save with model).
         self.register_buffer("mean", torch.tensor(IMAGENET_MEAN * 2).view(1, 6, 1, 1))
         self.register_buffer("std", torch.tensor(IMAGENET_STD * 2).view(1, 6, 1, 1))
         
-        d = decoder_channels
-        self.dec4 = Decoder(enc[4], enc[3], d[0])  
-        self.dec3 = Decoder(d[0],   enc[2], d[1])  
-        self.dec2 = Decoder(d[1],   enc[1], d[2])  
-        self.dec1 = Decoder(d[2],   enc[0], d[3]) 
+        d = decoder_channels                       # num channels: 
+        self.dec4 = Decoder(enc[4], enc[3], d[0])  # 96
+        self.dec3 = Decoder(d[0], enc[2], d[1])    # 64 
+        self.dec2 = Decoder(d[1], enc[1], d[2])    # 48
+        self.dec1 = Decoder(d[2], enc[0], d[3])    # 32
 
         # Upsample to original input resolution (256x256)
-        self.up = nn.Upsample(scale_factor=2, mode="bilinear", align_corners=False)
+        self.up = nn.Upsample(scale_factor=2, mode="bilinear", align_corners=False) 
         
-        self.head = nn.Conv2d(d[3], 3, kernel_size=1)
+        self.head = nn.Conv2d(d[3], 3, kernel_size=1) # Final convolution mapping 32 feature maps to 3 RGB channels (which is the residual delta map).
         nn.init.zeros_(self.head.weight)
         nn.init.zeros_(self.head.bias)
 
     def forward(self, x):
-        i_warp = x[:, :3]
+        i_warp = x[:, 3:] # Channels 3, 4, 5 representing the warped image
 
+        # Normalize and extract feature maps from the encoder.
         c1, c2, c3, c4, c5 = self.encoder((x - self.mean) / self.std)
 
+        # Upscale feature maps and combine them with encoder's features via skip connections
         y = self.dec4(c5, c4)
         y = self.dec3(y, c3)
         y = self.dec2(y, c2)
@@ -90,7 +95,7 @@ class MobileNetV4UNet(nn.Module):
         y = self.up(y)
     
         h = self.head(y)
-        delta = torch.tanh(h)
+        delta = torch.tanh(h) # Force model outputs to [-1, 1]
     
         return delta, i_warp + delta
 
@@ -98,12 +103,12 @@ class MobileNetV4UNet(nn.Module):
         super().train(mode)
         if mode:
             for m in self.encoder.modules():
-                if isinstance(m, nn.modules.batchnorm._BatchNorm):
-                    m.eval()
+                if isinstance(m, nn.modules.batchnorm._BatchNorm): 
+                    m.eval() # Use fixed BatchNorm statistics (they aren't updated during training, since they're pre-calculated)
         return self
 
     def param_groups(self, decoder_lr=3e-4, encoder_lr=3e-5):
-        # learning rate computation
+        # Assign different learning rates for encoder and decoder
         enc = [p for n, p in self.named_parameters() if n.startswith("encoder.") and p.requires_grad]
         dec = [p for n, p in self.named_parameters() if not n.startswith("encoder.") and p.requires_grad]
         return [{"params": dec, "lr": decoder_lr}, {"params": enc, "lr": encoder_lr}]
