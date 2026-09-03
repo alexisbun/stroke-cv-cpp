@@ -74,7 +74,7 @@ class CompositeLoss(nn.Module):
 
         self.charbonnier = CharbonnierLoss()
         self.sobel = SobelLoss()
-        self.perceptual = PerceptualLoss() if w_perc > 0 else None
+        self.perceptual = PerceptualLoss()
 
     def forward(
         self,
@@ -84,12 +84,12 @@ class CompositeLoss(nn.Module):
         loss_components = {
             "charbonnier": self.charbonnier(pred, target),
             "sobel": self.sobel(pred, target),
+            "perceptual": self.perceptual(pred, target),
         }
-        total = self.w_char * loss_components["charbonnier"] + self.w_sobel * loss_components["sobel"]
-
-        if self.perceptual is not None:
-            loss_components["perceptual"] = self.perceptual(pred, target)
-            total = total + self.w_perc * loss_components["perceptual"]
-
+        total = (
+            self.w_char * loss_components["charbonnier"]
+            + self.w_sobel * loss_components["sobel"]
+            + self.w_perc * loss_components["perceptual"]
+        )
 
         return total, {k: v.detach() for k, v in loss_components.items()}
