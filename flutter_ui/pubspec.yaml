@@ -38,3 +38,4 @@ flutter:
   assets: 
     - assets/face_landmarker.task
     - assets/landmark_displacement_model.onnx 
+    - assets/mobileunet.onnx

@@ -64,6 +64,7 @@ void initializeEngine(ffi.Pointer<ffi.Void> envPointer, JObject jAssetManager) {
   final ffi.Pointer<Utf8> onnxPointer =
       'flutter_assets/assets/landmark_displacement_model.onnx'.toNativeUtf8();
   bindings.initStrokeModelFromAsset(
+    // change to: bindings.initGCNModelFromAsset
     envPointer,
     jAssetManager.reference.pointer,
     onnxPointer.cast<ffi.Char>(),

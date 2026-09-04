@@ -11,7 +11,6 @@
 #include <android/asset_manager_jni.h>
 
 JavaVM *g_JavaVM = nullptr;
-
 extern "C" jint JNI_OnLoad(JavaVM *vm, void *reserved) {
   g_JavaVM = vm;
   try {
@@ -83,25 +82,25 @@ extern "C" void initFaceMeshFromAsset(void* env_ptr, void* j_asset_manager, cons
 }
 
 StrokeModelInference strokeModelInference;
-extern "C" void initStrokeModelFromAsset(void* env_ptr, void* j_asset_manager, const char* asset_name) {
+extern "C" void initGCNModelFromAsset(void* env_ptr, void* j_asset_manager, const char* asset_name) {
     JNIEnv* env = reinterpret_cast<JNIEnv*>(env_ptr);
     jobject asset_manager_obj = reinterpret_cast<jobject>(j_asset_manager);
     AAssetManager* mgr = AAssetManager_fromJava(env, asset_manager_obj);
     if (!mgr) {
-        spdlog::error("initStrokeModelFromAsset: Failed to get AAssetManager from Java!");
+        spdlog::error("initGCNModelFromAsset: Failed to get AAssetManager from Java!");
         return;
     }
-    spdlog::info("initStrokeModelFromAsset: Attempting to open asset: {}", asset_name);
+    spdlog::info("initGCNModelFromAsset: Attempting to open asset: {}", asset_name);
     AAsset* asset = AAssetManager_open(mgr, asset_name, AASSET_MODE_BUFFER);
     if (asset) {
         size_t size = AAsset_getLength(asset);
-        spdlog::info("initStrokeModelFromAsset: Successfully opened asset. Size: {} bytes", size);
+        spdlog::info("initGCNModelFromAsset: Successfully opened asset. Size: {} bytes", size);
         char* buffer = new char[size];
         AAsset_read(asset, buffer, size);
         AAsset_close(asset);
         strokeModelInference.InitializeModelFromBuffer(buffer, size);
         delete[] buffer; 
     } else {
-        spdlog::error("initStrokeModelFromAsset: Failed to open asset '{}' from AAssetManager!", asset_name);
+        spdlog::error("initGCNModelFromAsset: Failed to open asset '{}' from AAssetManager!", asset_name);
     }
 }

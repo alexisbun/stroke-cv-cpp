@@ -123,13 +123,14 @@ class ExportWrapper(nn.Module):
     
 def export_onnx(model, path):
     was_training = model.training
-    model.eval()
+    orig_device = next(model.parameters()).device
+    model_cpu = model.cpu().eval()
     try:
-        dummy_input = torch.zeros(1, 6, 256, 256)
+        dummy_input = torch.zeros(1, 6, 256, 256, device="cpu")
         torch.onnx.export(
-            ExportWrapper(model).eval(),
+            ExportWrapper(model_cpu),
             (dummy_input,),
-            path,
+            str(path),
             opset_version=16,
             do_constant_folding=True,
             input_names=["input"],
@@ -137,7 +138,9 @@ def export_onnx(model, path):
             dynamic_axes={
                 "input": {0: "batch"},
                 "delta": {0: "batch"}
-            }
+            },
+            dynamo=False,
         )
     finally:
+        model.to(orig_device)
         model.train(was_training)

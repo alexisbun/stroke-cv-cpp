@@ -6,7 +6,8 @@ long long nativeAttach(void *env, void *surface, int width, int height);
 void nativeDetach(long long engineHandle);
 double getEngineFps(long long engineHandle);
 void initFaceMeshFromAsset(void* env_ptr, void* j_asset_manager, const char* asset_name);
-void initStrokeModelFromAsset(void* env_ptr, void* j_asset_manager, const char* asset_name);
+void initGCNModelFromAsset(void* env_ptr, void* j_asset_manager, const char* asset_name);
+void initMobileUNetFromAsset(void* env_ptr, void* j_asset_manager, const char* asset_name);
 
 #ifdef __cplusplus
 }
