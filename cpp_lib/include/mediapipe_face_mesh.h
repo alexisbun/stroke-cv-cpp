@@ -3,6 +3,8 @@
 #include <android/hardware_buffer.h>
 #include <vector>
 #include <mutex>
+#include <algorithm>
+#include <cmath>
 #include "face_landmarker.h"
 #include <cstdint>
 #include <cstddef>

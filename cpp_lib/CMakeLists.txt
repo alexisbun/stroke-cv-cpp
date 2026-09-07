@@ -58,7 +58,8 @@ add_library(${PROJECT_NAME} SHARED
     src/image_reader_handler.cpp 
     src/utils.cpp
     src/mediapipe_face_mesh.cpp
-    src/stroke_model_inference.cpp)
+    src/stroke_model_inference.cpp
+    src/mobile_unet.cpp)
 
 find_library(android android)
 find_library(GLESv3 GLESv3)

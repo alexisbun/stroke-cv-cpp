@@ -92,15 +92,15 @@ class CameraBindings {
         )
       >();
 
-  void initStrokeModelFromAsset(
+  void initGCNModelFromAsset(
     ffi.Pointer<ffi.Void> env_ptr,
     ffi.Pointer<ffi.Void> j_asset_manager,
     ffi.Pointer<ffi.Char> asset_name,
   ) {
-    return _initStrokeModelFromAsset(env_ptr, j_asset_manager, asset_name);
+    return _initGCNModelFromAsset(env_ptr, j_asset_manager, asset_name);
   }
 
-  late final _initStrokeModelFromAssetPtr =
+  late final _initGCNModelFromAssetPtr =
       _lookup<
         ffi.NativeFunction<
           ffi.Void Function(
@@ -109,8 +109,35 @@ class CameraBindings {
             ffi.Pointer<ffi.Char>,
           )
         >
-      >('initStrokeModelFromAsset');
-  late final _initStrokeModelFromAsset = _initStrokeModelFromAssetPtr
+      >('initGCNModelFromAsset');
+  late final _initGCNModelFromAsset = _initGCNModelFromAssetPtr
+      .asFunction<
+        void Function(
+          ffi.Pointer<ffi.Void>,
+          ffi.Pointer<ffi.Void>,
+          ffi.Pointer<ffi.Char>,
+        )
+      >();
+
+  void initMobileUNetFromAsset(
+    ffi.Pointer<ffi.Void> env_ptr,
+    ffi.Pointer<ffi.Void> j_asset_manager,
+    ffi.Pointer<ffi.Char> asset_name,
+  ) {
+    return _initMobileUNetFromAsset(env_ptr, j_asset_manager, asset_name);
+  }
+
+  late final _initMobileUNetFromAssetPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Pointer<ffi.Void>,
+            ffi.Pointer<ffi.Void>,
+            ffi.Pointer<ffi.Char>,
+          )
+        >
+      >('initMobileUNetFromAsset');
+  late final _initMobileUNetFromAsset = _initMobileUNetFromAssetPtr
       .asFunction<
         void Function(
           ffi.Pointer<ffi.Void>,

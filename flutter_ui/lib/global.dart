@@ -52,22 +52,32 @@ class InitLibrary {
 
 CameraBindings bindings = CameraBindings(InitLibrary.instance);
 void initializeEngine(ffi.Pointer<ffi.Void> envPointer, JObject jAssetManager) {
-  final ffi.Pointer<Utf8> utf8Pointer =
+  final ffi.Pointer<Utf8> faceMeshPtr =
       'flutter_assets/assets/face_landmarker.task'.toNativeUtf8();
-  final ffi.Pointer<ffi.Char> charPointer = utf8Pointer.cast<ffi.Char>();
+  final ffi.Pointer<ffi.Char> charPointer = faceMeshPtr.cast<ffi.Char>();
   bindings.initFaceMeshFromAsset(
     envPointer,
     jAssetManager.reference.pointer,
     charPointer,
   );
-  calloc.free(utf8Pointer);
-  final ffi.Pointer<Utf8> onnxPointer =
+  calloc.free(faceMeshPtr);
+
+  final ffi.Pointer<Utf8> gcnPtr =
       'flutter_assets/assets/landmark_displacement_model.onnx'.toNativeUtf8();
-  bindings.initStrokeModelFromAsset(
-    // change to: bindings.initGCNModelFromAsset
+  bindings.initGCNModelFromAsset(
     envPointer,
     jAssetManager.reference.pointer,
-    onnxPointer.cast<ffi.Char>(),
+    gcnPtr.cast<ffi.Char>(),
   );
-  calloc.free(onnxPointer);
+  calloc.free(gcnPtr);
+
+  final ffi.Pointer<Utf8> unetPtr = 'flutter_assets/assets/mobileunet.onnx'
+      .toNativeUtf8();
+
+  bindings.initMobileUNetFromAsset(
+    envPointer,
+    jAssetManager.reference.pointer,
+    unetPtr.cast<ffi.Char>(),
+  );
+  calloc.free(unetPtr);
 }
