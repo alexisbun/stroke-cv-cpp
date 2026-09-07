@@ -52,5 +52,5 @@ bool MobileUNet::UNetInference(
     ioBinding.BindOutput("delta", outputTensor);
 
     session_->Run(Ort::RunOptions{nullptr}, ioBinding);
-
+    return true;
 }
