@@ -6,6 +6,8 @@
 #include <condition_variable>
 #include <mutex>
 #include <thread>
+#include <atomic>
+#include <array>
 
 #include "egl_utils.h"
 #include "image_reader_handler.h"

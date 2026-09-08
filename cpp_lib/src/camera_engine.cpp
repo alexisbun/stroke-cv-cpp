@@ -1,12 +1,19 @@
 #include "camera_engine.h"
 #include "ndk_camera.h"
 #include "mediapipe_face_mesh.h"
+#include "mobile_unet.h" 
 
 #include <spdlog/spdlog.h>
 #include <utils.h>
 
 extern FaceMesh faceMesh;
 extern StrokeModelInference strokeModelInference;
+extern MobileUNet mobileUNetInference;
+
+static std::atomic<bool> g_isInferring{false};
+static std::atomic<bool> g_hasNewDelta{false};
+static std::array<uint8_t, 256 * 256 * 3> g_packedDeltaRgb{};
+static bool g_deltaTextureReady = false;
 
 CameraEngine::CameraEngine(ANativeWindow *window, int32_t width, int32_t height,
                            int32_t format)
@@ -87,8 +94,17 @@ void CameraEngine::renderLoop() {
       if (image != EGL_NO_IMAGE_KHR) {
         eglManager_.DrawTexture(textureId_);
 
+        if (g_hasNewDelta.exchange(false)) {
+          eglManager_.UploadDeltaTexture(g_packedDeltaRgb.data());
+          g_deltaTextureReady = true;
+        }
+
         std::vector<MpNormalizedLandmark> landmarks;
+        FaceROI currentRoi{};
+
         if (faceMesh.GetLatestLandmarks(landmarks)) {
+          currentRoi = ComputeFaceROI(landmarks, width_, height_);
+
           std::vector<MpNormalizedLandmark> strokeLandmarks;
           if (strokeModelInference.PredictStrokeLandmarks(landmarks, strokeLandmarks)) {
             spdlog::debug("PredictStrokeLandmarks called!");
@@ -98,14 +114,66 @@ void CameraEngine::renderLoop() {
             
             size_t i = 0;
             for (const auto& lm : landmarks) {
-                const auto& stroke = strokeLandmarks[i++];
-                meshVertexData.push_back(1.0f - (stroke.y * 2.0f)); // stroke.x
-                meshVertexData.push_back((stroke.x * 2.0f) - 1.0f); // stroke.y
-                meshVertexData.push_back(lm.x);
-                meshVertexData.push_back(lm.y);
+              const auto& stroke = strokeLandmarks[i++];
+
+              meshVertexData.push_back(1.0f - (stroke.y * 2.0f)); // stroke.x
+              meshVertexData.push_back((stroke.x * 2.0f) - 1.0f); // stroke.y
+              meshVertexData.push_back(lm.x);
+              meshVertexData.push_back(lm.y);
             }
-            eglManager_.DrawStrokeEffect(meshVertexData, textureId_);
+
+            if (g_deltaTextureReady && (currentRoi.size > 0)) {
+              float roiMinX = static_cast<float>(currentRoi.x) / static_cast<float>(width_);
+              float roiMinY = static_cast<float>(currentRoi.y) / static_cast<float>(height_);
+              float roiSizeX = static_cast<float>(currentRoi.size) / static_cast<float>(width_);
+              float roiSizeY = static_cast<float>(currentRoi.size) / static_cast<float>(height_);
+
+              eglManager_.DrawStrokeEffect(
+                meshVertexData, 
+                textureId_,
+                roiMinX, roiMinY, roiSizeX, roiSizeY,
+                true);
+            }
           }    
+        }
+
+        if (currentRoi.size > 0 && mobileUNetInference.IsInitialized() && !g_isInferring.load()) {
+            g_isInferring.store(true);
+
+            AHardwareBuffer_acquire(localBuffer);
+            std::thread([localBuffer, currentRoi] {
+                std::vector<uint8_t> cropOrig(256 * 256 * 3);
+
+                if (CropAndResizeHardwareBuffer(localBuffer, currentRoi, cropOrig.data())) {
+                    AHardwareBuffer_release(localBuffer);
+
+                    alignas(64) static std::array<float, INPUT_SIZE> input;
+                    alignas(64) static std::array<float, OUTPUT_SIZE> delta;
+
+                    constexpr int PIXELS = 256 * 256;
+
+                    for (int i = 0; i < PIXELS; ++i) {
+                        float r = cropOrig[i * 3 + 0] / 255.0f;
+                        float g = cropOrig[i * 3 + 1] / 255.0f;
+                        float b = cropOrig[i * 3 + 2] / 255.0f;
+
+                        input[0 * PIXELS + i] = r;
+                        input[1 * PIXELS + i] = g; 
+                        input[2 * PIXELS + i] = b;  
+
+                        input[3 * PIXELS + i] = r;
+                        input[4 * PIXELS + i] = g;  
+                        input[5 * PIXELS + i] = b;  
+                    }
+                    if (mobileUNetInference.UNetInference(input, delta)) {
+                        PlanarToRBB(delta.data(), g_packedDeltaRgb.data());
+                        g_hasNewDelta.store(true);
+                    }
+                } else {
+                    AHardwareBuffer_release(localBuffer);
+                }
+                g_isInferring.store(false);
+            }).detach();
         }
 
         // present comined camera frame

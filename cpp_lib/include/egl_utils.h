@@ -29,7 +29,13 @@ public:
     bool InitShaders();
     void DrawTexture(GLuint textureId);
     void DrawLandmarks(const std::vector<float> &projectedCoordinates);
-    void DrawStrokeEffect(const std::vector<float> &meshVertexData, GLuint textureId);
+    void UploadDeltaTexture(const uint8_t* rgbBytes256);
+    void DrawStrokeEffect(
+        const std::vector<float> &meshVertexData,
+        GLuint textureId,
+        float roiMinX, float roiMinY,
+        float roiSizeX, float roiSizeY,
+        bool hasDelta);
 
 private:
     EGLDisplay display_;
@@ -55,6 +61,12 @@ private:
     GLuint strokeEbo_ = 0;
     GLint strokeTextureUniformLocation_ = 0;
     GLsizei numTriangleIndices_ = 0;
+
+    GLuint deltaTextureId_ = 0;
+    GLint strokeDeltaTextureLoc_ = -1;
+    GLint strokeRoiMinLoc_ = -1;
+    GLint strokeRoiSizeLoc_ = -1;
+    GLint strokeHasDeltaLoc_ = -1;
 
     std::unordered_map<AHardwareBuffer *, EGLImageKHR> eglImageCache_;
 };
@@ -109,21 +121,38 @@ struct Shaders
         #version 300 es
         layout(location = 0) in vec2 a_displacedPosition; 
         layout(location = 1) in vec2 a_originalTexCoords; 
+
         out vec2 v_texCoords;
+        out vec2 v_deltaCoords;
+
+        uniform vec2 u_roiMin;
+        uniform vec2 u_roiSize; 
+
         void main() {
             gl_Position = vec4(a_displacedPosition, 0.0, 1.0);
             v_texCoords = a_originalTexCoords;
+            v_deltaCoords = (a_originalTexCoords - u_roiMin) / u_roiSize;
         }
     )glsl";
     static constexpr const char *STROKE_FRAGMENT_SOURCE = R"glsl(
         #version 300 es
         #extension GL_OES_EGL_image_external_essl3 : require
         precision mediump float;
+
         in vec2 v_texCoords;
+        in vec2 v_deltaCoords;
         out vec4 outColor;
+
         uniform samplerExternalOES u_texture;
+        uniform sampler2D u_deltaTexture;
+        uniform bool u_hasDelta;
         void main() {
-            outColor = texture(u_texture, v_texCoords);
+            if (!u_hasDelta) {
+                discard;
+            }
+            vec3 warpedCamera = texture(u_texture, v_texCoords).rgb;
+            vec3 delta = texture(u_deltaTexture, v_deltaCoords).rgb * 2.0 - 1.0;
+            outColor = vec4(clamp(warpedCamera + delta, 0.0, 1.0), 1.0);
         }
     )glsl";
 };
