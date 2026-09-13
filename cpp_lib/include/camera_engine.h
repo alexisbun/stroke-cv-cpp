@@ -54,6 +54,25 @@ private:
   double currentFps_ = 0;
   bool isFirstFrame_ = true;
 
+  std::thread unetWorkerThread_;
+  std::mutex unetMutex_;
+  std::condition_variable unetCv_;
+  bool unetRunning_ = false;
+  bool unetRequestReady_ = false;
+
+  AHardwareBuffer *unetPendingBuffer_ = nullptr;
+  FaceROI unetPendingRoi_{};
+  std::vector<MpNormalizedLandmark> unetPendingOrigLm_;
+  std::vector<MpNormalizedLandmark> unetPendingStrokeLm_;
+
+  std::mutex unetResultMutex_;
+  std::array<uint8_t, 256 * 256 * 3> completedDeltaRgb_{};
+  FaceROI completedRoi_{};
+  std::atomic<bool> hasNewDelta_{false};
+  bool deltaReady_ = false;
+  FaceROI activeDeltaRoi_{};
+
   void renderLoop();
   void onFrameAvailable(AImageReader *reader);
+  void unetWorkerLoop();
 };

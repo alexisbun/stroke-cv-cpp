@@ -122,8 +122,8 @@ struct Shaders
         layout(location = 0) in vec2 a_displacedPosition; 
         layout(location = 1) in vec2 a_originalTexCoords; 
 
-        out vec2 v_texCoords;
-        out vec2 v_deltaCoords;
+        out highp vec2 v_texCoords;
+        out highp vec2 v_deltaCoords;
 
         uniform vec2 u_roiMin;
         uniform vec2 u_roiSize; 
@@ -137,22 +137,23 @@ struct Shaders
     static constexpr const char *STROKE_FRAGMENT_SOURCE = R"glsl(
         #version 300 es
         #extension GL_OES_EGL_image_external_essl3 : require
-        precision mediump float;
+        precision highp float;
 
-        in vec2 v_texCoords;
-        in vec2 v_deltaCoords;
+        in highp vec2 v_texCoords;
+        in highp vec2 v_deltaCoords;
         out vec4 outColor;
 
         uniform samplerExternalOES u_texture;
         uniform sampler2D u_deltaTexture;
         uniform bool u_hasDelta;
         void main() {
-            if (!u_hasDelta) {
-                discard;
-            }
             vec3 warpedCamera = texture(u_texture, v_texCoords).rgb;
-            vec3 delta = texture(u_deltaTexture, v_deltaCoords).rgb * 2.0 - 1.0;
-            outColor = vec4(clamp(warpedCamera + delta, 0.0, 1.0), 1.0);
+            if (u_hasDelta) {
+                vec3 delta = texture(u_deltaTexture, v_deltaCoords).rgb * 2.0 - 1.0;
+                outColor = vec4(clamp(warpedCamera + delta, 0.0, 1.0), 1.0);
+            } else {
+                outColor = vec4(warpedCamera, 1.0);
+            }
         }
     )glsl";
 };

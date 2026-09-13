@@ -10,11 +10,6 @@ extern FaceMesh faceMesh;
 extern StrokeModelInference strokeModelInference;
 extern MobileUNet mobileUNetInference;
 
-static std::atomic<bool> g_isInferring{false};
-static std::atomic<bool> g_hasNewDelta{false};
-static std::array<uint8_t, 256 * 256 * 3> g_packedDeltaRgb{};
-static bool g_deltaTextureReady = false;
-
 CameraEngine::CameraEngine(ANativeWindow *window, int32_t width, int32_t height,
                            int32_t format)
     : ndkCamera_(nullptr), displayWindow_(window), width_(width),
@@ -26,10 +21,25 @@ CameraEngine::CameraEngine(ANativeWindow *window, int32_t width, int32_t height,
   }
   spdlog::info("JNI: nativeAttach called. Surface address: {}", (void *)displayWindow_);
   isRunning_ = true;
+  unetRunning_ = true;
+  unetWorkerThread_ = std::thread(&CameraEngine::unetWorkerLoop, this);
   renderThread_ = std::thread(&CameraEngine::renderLoop, this); // Spawns new independent thread for/ rendering to run OpenGL and EGL calls.
 }
 
 CameraEngine::~CameraEngine() {
+  {
+    std::lock_guard<std::mutex> lock(unetMutex_);
+    unetRunning_ = false;
+    if (unetPendingBuffer_ != nullptr) {
+      AHardwareBuffer_release(unetPendingBuffer_);
+      unetPendingBuffer_ = nullptr;
+    }
+  }
+  unetCv_.notify_all();
+  if (unetWorkerThread_.joinable()) {
+    unetWorkerThread_.join();
+  }
+
   {
     std::lock_guard<std::mutex> lock(mutex_);
     isRunning_ = false;
@@ -94,9 +104,11 @@ void CameraEngine::renderLoop() {
       if (image != EGL_NO_IMAGE_KHR) {
         eglManager_.DrawTexture(textureId_);
 
-        if (g_hasNewDelta.exchange(false)) {
-          eglManager_.UploadDeltaTexture(g_packedDeltaRgb.data());
-          g_deltaTextureReady = true;
+        if (hasNewDelta_.exchange(false)) {
+          std::lock_guard<std::mutex> lock(unetResultMutex_);
+          eglManager_.UploadDeltaTexture(completedDeltaRgb_.data());
+          activeDeltaRoi_ = completedRoi_;
+          deltaReady_ = true;
         }
 
         std::vector<MpNormalizedLandmark> landmarks;
@@ -122,58 +134,33 @@ void CameraEngine::renderLoop() {
               meshVertexData.push_back(lm.y);
             }
 
-            if (g_deltaTextureReady && (currentRoi.size > 0)) {
-              float roiMinX = static_cast<float>(currentRoi.x) / static_cast<float>(width_);
-              float roiMinY = static_cast<float>(currentRoi.y) / static_cast<float>(height_);
-              float roiSizeX = static_cast<float>(currentRoi.size) / static_cast<float>(width_);
-              float roiSizeY = static_cast<float>(currentRoi.size) / static_cast<float>(height_);
+            if (currentRoi.size > 0) {
+              FaceROI roiToUse = deltaReady_ ? activeDeltaRoi_ : currentRoi;
+              float roiMinX = static_cast<float>(roiToUse.x) / static_cast<float>(width_);
+              float roiMinY = static_cast<float>(roiToUse.y) / static_cast<float>(height_);
+              float roiSizeX = static_cast<float>(roiToUse.size) / static_cast<float>(width_);
+              float roiSizeY = static_cast<float>(roiToUse.size) / static_cast<float>(height_);
 
               eglManager_.DrawStrokeEffect(
                 meshVertexData, 
                 textureId_,
                 roiMinX, roiMinY, roiSizeX, roiSizeY,
-                true);
+                deltaReady_);
+            }
+
+            if (currentRoi.size > 0 && mobileUNetInference.IsInitialized()) {
+              std::unique_lock<std::mutex> lock(unetMutex_, std::try_to_lock);
+              if (lock.owns_lock() && !unetRequestReady_) {
+                AHardwareBuffer_acquire(localBuffer);
+                unetPendingBuffer_ = localBuffer;
+                unetPendingRoi_ = currentRoi;
+                unetPendingOrigLm_ = landmarks;
+                unetPendingStrokeLm_ = strokeLandmarks;
+                unetRequestReady_ = true;
+                unetCv_.notify_one();
+              }
             }
           }    
-        }
-
-        if (currentRoi.size > 0 && mobileUNetInference.IsInitialized() && !g_isInferring.load()) {
-            g_isInferring.store(true);
-
-            AHardwareBuffer_acquire(localBuffer);
-            std::thread([localBuffer, currentRoi] {
-                std::vector<uint8_t> cropOrig(256 * 256 * 3);
-
-                if (CropAndResizeHardwareBuffer(localBuffer, currentRoi, cropOrig.data())) {
-                    AHardwareBuffer_release(localBuffer);
-
-                    alignas(64) static std::array<float, INPUT_SIZE> input;
-                    alignas(64) static std::array<float, OUTPUT_SIZE> delta;
-
-                    constexpr int PIXELS = 256 * 256;
-
-                    for (int i = 0; i < PIXELS; ++i) {
-                        float r = cropOrig[i * 3 + 0] / 255.0f;
-                        float g = cropOrig[i * 3 + 1] / 255.0f;
-                        float b = cropOrig[i * 3 + 2] / 255.0f;
-
-                        input[0 * PIXELS + i] = r;
-                        input[1 * PIXELS + i] = g; 
-                        input[2 * PIXELS + i] = b;  
-
-                        input[3 * PIXELS + i] = r;
-                        input[4 * PIXELS + i] = g;  
-                        input[5 * PIXELS + i] = b;  
-                    }
-                    if (mobileUNetInference.UNetInference(input, delta)) {
-                        PlanarToRBB(delta.data(), g_packedDeltaRgb.data());
-                        g_hasNewDelta.store(true);
-                    }
-                } else {
-                    AHardwareBuffer_release(localBuffer);
-                }
-                g_isInferring.store(false);
-            }).detach();
         }
 
         // present comined camera frame
@@ -238,4 +225,60 @@ void CameraEngine::onFrameAvailable(AImageReader *reader) {
     frameReady_ = true;
   }
   cv_.notify_one();
+}
+
+void CameraEngine::unetWorkerLoop() {
+  while (true) {
+    AHardwareBuffer *buffer = nullptr;
+    FaceROI roi{};
+    std::vector<MpNormalizedLandmark> origLm;
+    std::vector<MpNormalizedLandmark> strokeLm;
+
+    {
+      std::unique_lock<std::mutex> lock(unetMutex_);
+      unetCv_.wait(lock, [this] { return !unetRunning_ || unetRequestReady_; });
+      if (!unetRunning_) {
+        break;
+      }
+      buffer = unetPendingBuffer_;
+      roi = unetPendingRoi_;
+      origLm = std::move(unetPendingOrigLm_);
+      strokeLm = std::move(unetPendingStrokeLm_);
+      unetPendingBuffer_ = nullptr;
+      unetRequestReady_ = false;
+    }
+
+    if (buffer != nullptr && roi.size > 0) {
+      std::vector<uint8_t> cropOrig(256 * 256 * 3);
+      if (CropAndResizeHardwareBuffer(buffer, roi, cropOrig.data())) {
+        AHardwareBuffer_release(buffer);
+
+        std::vector<uint8_t> cropWarp(256 * 256 * 3);
+        WarpCropTriangles(cropOrig.data(), origLm, strokeLm, roi, width_, height_, cropWarp.data());
+
+        alignas(64) static std::array<float, INPUT_SIZE> input;
+        alignas(64) static std::array<float, OUTPUT_SIZE> delta;
+        constexpr int PIXELS = 256 * 256;
+
+        for (int i = 0; i < PIXELS; ++i) {
+          input[0 * PIXELS + i] = cropOrig[i * 3 + 0] / 255.0f;
+          input[1 * PIXELS + i] = cropOrig[i * 3 + 1] / 255.0f;
+          input[2 * PIXELS + i] = cropOrig[i * 3 + 2] / 255.0f;
+
+          input[3 * PIXELS + i] = cropWarp[i * 3 + 0] / 255.0f;
+          input[4 * PIXELS + i] = cropWarp[i * 3 + 1] / 255.0f;
+          input[5 * PIXELS + i] = cropWarp[i * 3 + 2] / 255.0f;
+        }
+
+        if (mobileUNetInference.UNetInference(input, delta)) {
+          std::lock_guard<std::mutex> lock(unetResultMutex_);
+          PlanarToRBB(delta.data(), completedDeltaRgb_.data());
+          completedRoi_ = roi;
+          hasNewDelta_.store(true);
+        }
+      } else {
+        AHardwareBuffer_release(buffer);
+      }
+    }
+  }
 }

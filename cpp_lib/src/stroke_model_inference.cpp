@@ -7,23 +7,42 @@ StrokeModelInference::StrokeModelInference()
     inputTensorValues_.resize(1 * 478 * 3, 0.0f);
     outputDeltaValues_.resize(1 * 478 * 3, 0.0f);
     prevDisplacement_.resize(478 * 3, 0.0f);
-    //InitializeBoundaryWeights(); 
+    InitializeBoundaryWeights(); 
 }
 
 void StrokeModelInference::InitializeBoundaryWeights()
 {
     boundaryWeights_.assign(478, 1.0f);
 
-    const std::vector<int> faceOvalIndicies = {
+    const std::vector<int> innerRingIndices = {
+        108, 151, 337, 299, 333, 298, 301, 368, 264, 447, 366, 401, 435, 367, 364, 394,
+        395, 369, 396, 175, 171, 140, 170, 169, 135, 138, 215, 177, 137, 227, 34, 139,
+        71, 68, 104, 69
+    };
+    for (int idx : innerRingIndices) {
+        if (idx >= 0 && idx < 478) {
+            boundaryWeights_[idx] = 0.5f;
+        }
+    }
+
+    const std::vector<int> faceOvalIndices = {
         10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288,
         397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150, 136,
         172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109
     };
+    for (int idx : faceOvalIndices) {
+        if (idx >= 0 && idx < 478) {
+            boundaryWeights_[idx] = 0.0f;
+        }
+    }
 
-    // ensure that stroke effect isn't applied at outer face boundary indices 
-    for (int i : faceOvalIndicies) {
-        if (i >= 0 && i < 478) {
-             boundaryWeights_[i] = 0.0f;
+    const std::vector<int> foreheadAndBrowIndices = {
+        10, 151, 9, 8, 107, 336, 66, 296, 105, 334, 63, 293, 67, 297, 109, 338,
+        70, 55, 65, 52, 53, 46, 300, 285, 295, 282, 283, 276
+    };
+    for (int idx : foreheadAndBrowIndices) {
+        if (idx >= 0 && idx < 478) {
+            boundaryWeights_[idx] = 0.0f;
         }
     }
 }
@@ -99,29 +118,30 @@ bool StrokeModelInference::PredictStrokeLandmarks(
     float* rawDeltaPtr = outputTensors[1].GetTensorMutableData<float>();
 
     for (size_t i = 0; i < 478; ++i) {
-        // un-normalize landmark coordinates
         float deltaX_upright = rawDeltaPtr[i * 3 + 0] * scale;
         float deltaY_upright = rawDeltaPtr[i * 3 + 1] * scale;
         float deltaZ = rawDeltaPtr[i * 3 + 2] * scale;
 
-        float deltaX_cam = -deltaY_upright;
-        float deltaY_cam =  deltaX_upright;
+        float w = (i < boundaryWeights_.size()) ? boundaryWeights_[i] : 1.0f;
+        float deltaX_cam = -deltaY_upright * w;
+        float deltaY_cam =  deltaX_upright * w;
+        float deltaZ_cam =  deltaZ * w;
+
         if (isFirstFrame_) {
             prevDisplacement_[i * 3 + 0] = deltaX_cam;
             prevDisplacement_[i * 3 + 1] = deltaY_cam;
-            prevDisplacement_[i * 3 + 2] = deltaZ;
+            prevDisplacement_[i * 3 + 2] = deltaZ_cam;
         } else {
-            // apply exponential moving average filter to prevent jitter effect (smoothingAlpha_ = 0.2f)
             deltaX_cam = smoothingAlpha_ * deltaX_cam + (1.0f - smoothingAlpha_) * prevDisplacement_[i * 3 + 0];
             deltaY_cam = smoothingAlpha_ * deltaY_cam + (1.0f - smoothingAlpha_) * prevDisplacement_[i * 3 + 1];
-            deltaZ = smoothingAlpha_ * deltaZ + (1.0f - smoothingAlpha_) * prevDisplacement_[i * 3 + 2];
+            deltaZ_cam = smoothingAlpha_ * deltaZ_cam + (1.0f - smoothingAlpha_) * prevDisplacement_[i * 3 + 2];
             prevDisplacement_[i * 3 + 0] = deltaX_cam;
             prevDisplacement_[i * 3 + 1] = deltaY_cam;
-            prevDisplacement_[i * 3 + 2] = deltaZ;
+            prevDisplacement_[i * 3 + 2] = deltaZ_cam;
         }
         strokeLandmarks[i].x = landmarks[i].x + deltaX_cam;
         strokeLandmarks[i].y = landmarks[i].y + deltaY_cam;
-        strokeLandmarks[i].z = landmarks[i].z + deltaZ;
+        strokeLandmarks[i].z = landmarks[i].z + deltaZ_cam;
     }
     isFirstFrame_ = false;
     return true;

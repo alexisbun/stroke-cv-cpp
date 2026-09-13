@@ -1,6 +1,7 @@
 #pragma once
 
 #include "face_landmarker.h"
+#include "face_mesh_triangles.h"
 #include <algorithm>
 #include <android/hardware_buffer.h>
 #include <cmath>
@@ -159,4 +160,98 @@ inline bool CropAndResizeHardwareBuffer(AHardwareBuffer *buffer,
   }
 
   return true;
+}
+
+inline void WarpCropTriangles(
+    const uint8_t* srcCropRgb,
+    const std::vector<MpNormalizedLandmark>& origLm,
+    const std::vector<MpNormalizedLandmark>& strokeLm,
+    const FaceROI& roi,
+    int imgW, int imgH,
+    uint8_t* dstWarpRgb)
+{
+    if (!srcCropRgb || !dstWarpRgb || origLm.size() < 478 || strokeLm.size() < 478 || roi.size <= 0) {
+        if (srcCropRgb && dstWarpRgb) {
+            std::memcpy(dstWarpRgb, srcCropRgb, 256 * 256 * 3);
+        }
+        return;
+    }
+
+    std::memcpy(dstWarpRgb, srcCropRgb, 256 * 256 * 3);
+
+    struct Point2D { float x; float y; };
+    std::vector<Point2D> origPts(478);
+    std::vector<Point2D> strokePts(478);
+
+    float invRoiSize = 255.0f / static_cast<float>(roi.size);
+    for (size_t i = 0; i < 478; ++i) {
+        origPts[i].x = (origLm[i].x * static_cast<float>(imgW) - static_cast<float>(roi.x)) * invRoiSize;
+        origPts[i].y = (origLm[i].y * static_cast<float>(imgH) - static_cast<float>(roi.y)) * invRoiSize;
+
+        strokePts[i].x = (strokeLm[i].x * static_cast<float>(imgW) - static_cast<float>(roi.x)) * invRoiSize;
+        strokePts[i].y = (strokeLm[i].y * static_cast<float>(imgH) - static_cast<float>(roi.y)) * invRoiSize;
+    }
+
+    constexpr size_t numTriangles = NUM_FACE_INDICES / 3;
+    for (size_t t = 0; t < numTriangles; ++t) {
+        uint16_t i0 = FACE_MESH_TRIANGLES[t * 3 + 0];
+        uint16_t i1 = FACE_MESH_TRIANGLES[t * 3 + 1];
+        uint16_t i2 = FACE_MESH_TRIANGLES[t * 3 + 2];
+
+        if (i0 >= 478 || i1 >= 478 || i2 >= 478) continue;
+
+        const Point2D& p0 = strokePts[i0];
+        const Point2D& p1 = strokePts[i1];
+        const Point2D& p2 = strokePts[i2];
+
+        const Point2D& q0 = origPts[i0];
+        const Point2D& q1 = origPts[i1];
+        const Point2D& q2 = origPts[i2];
+
+        int minX = std::max(0, static_cast<int>(std::floor(std::min({p0.x, p1.x, p2.x}))));
+        int maxX = std::min(255, static_cast<int>(std::ceil(std::max({p0.x, p1.x, p2.x}))));
+        int minY = std::max(0, static_cast<int>(std::floor(std::min({p0.y, p1.y, p2.y}))));
+        int maxY = std::min(255, static_cast<int>(std::ceil(std::max({p0.y, p1.y, p2.y}))));
+
+        if (minX > maxX || minY > maxY) continue;
+
+        float den = (p1.y - p2.y) * (p0.x - p2.x) + (p2.x - p1.x) * (p0.y - p2.y);
+        if (std::abs(den) < 1e-5f) continue;
+        float invDen = 1.0f / den;
+
+        for (int y = minY; y <= maxY; ++y) {
+            float py = static_cast<float>(y) + 0.5f;
+            for (int x = minX; x <= maxX; ++x) {
+                float px = static_cast<float>(x) + 0.5f;
+
+                float l0 = ((p1.y - p2.y) * (px - p2.x) + (p2.x - p1.x) * (py - p2.y)) * invDen;
+                float l1 = ((p2.y - p0.y) * (px - p2.x) + (p0.x - p2.x) * (py - p2.y)) * invDen;
+                float l2 = 1.0f - l0 - l1;
+
+                if (l0 >= -1e-3f && l1 >= -1e-3f && l2 >= -1e-3f) {
+                    float sx = l0 * q0.x + l1 * q1.x + l2 * q2.x;
+                    float sy = l0 * q0.y + l1 * q1.y + l2 * q2.y;
+
+                    int x0 = std::clamp(static_cast<int>(std::floor(sx)), 0, 254);
+                    int y0 = std::clamp(static_cast<int>(std::floor(sy)), 0, 254);
+                    float fx = std::clamp(sx - static_cast<float>(x0), 0.0f, 1.0f);
+                    float fy = std::clamp(sy - static_cast<float>(y0), 0.0f, 1.0f);
+
+                    float w00 = (1.0f - fx) * (1.0f - fy);
+                    float w10 = fx * (1.0f - fy);
+                    float w01 = (1.0f - fx) * fy;
+                    float w11 = fx * fy;
+
+                    int dstIdx = (y * 256 + x) * 3;
+                    for (int c = 0; c < 3; ++c) {
+                        float sampleVal = w00 * srcCropRgb[(y0 * 256 + x0) * 3 + c] +
+                                          w10 * srcCropRgb[(y0 * 256 + (x0 + 1)) * 3 + c] +
+                                          w01 * srcCropRgb[((y0 + 1) * 256 + x0) * 3 + c] +
+                                          w11 * srcCropRgb[((y0 + 1) * 256 + (x0 + 1)) * 3 + c];
+                        dstWarpRgb[dstIdx + c] = static_cast<uint8_t>(std::clamp(sampleVal, 0.0f, 255.0f));
+                    }
+                }
+            }
+        }
+    }
 }
