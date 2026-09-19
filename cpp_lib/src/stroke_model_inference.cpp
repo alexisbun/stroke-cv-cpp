@@ -26,9 +26,7 @@ void StrokeModelInference::InitializeBoundaryWeights()
     }
 
     const std::vector<int> faceOvalIndices = {
-        10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288,
-        397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150, 136,
-        172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109
+        10, 338, 297, 332, 284, 251, 21, 54, 103, 67, 109
     };
     for (int idx : faceOvalIndices) {
         if (idx >= 0 && idx < 478) {

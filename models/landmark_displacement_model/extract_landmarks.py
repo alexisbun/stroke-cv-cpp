@@ -22,7 +22,7 @@ def init_mp():
         output_face_blendshapes=True,
         output_facial_transformation_matrixes=True,
         num_faces=1)
-    detector = vision.FaceLandmarker.create_from_options(options) # verify if this installation has the iris landmarks
+    detector = vision.FaceLandmarker.create_from_options(options)
     return detector
 
 # Store image using OpenCV, apply face mesh to image, obtain normalized coordinates (array), save the coordinates to a numpy array
@@ -51,6 +51,7 @@ def generate_dataset_npz(synthetic_dataset_path, output_npz_path):
     altered = []
     dir_path = Path(synthetic_dataset_path)
     num_undetected_faces = 0
+    
 
     print(f"Extracting landmarks from {synthetic_dataset_path}")
     max_person_id = max([int(re.search(r'\d+', f.name).group(0)) for f in dir_path.glob('*result_*')]) // 2
@@ -90,7 +91,7 @@ def generate_dataset_npz(synthetic_dataset_path, output_npz_path):
         altered=altered_batched
     )
     print(f"Saved landmarks as .npz to {output_npz_path}")
-    
+
 # construct edge_index attribute for PyTorch graph connectivity
 def graph_connectivity():
     connections = FaceLandmarksConnections.FACE_LANDMARKS_TESSELATION
@@ -123,7 +124,7 @@ def generate_dataset_pt(npz_path="/home/alexis/Desktop/landmarks.npz", save_path
 
     edge_index = graph_connectivity()
 
-    rigid_anchors = [10, 6, 234, 454, 33, 263]
+    rigid_anchors = [10, 6, 168, 133, 362]
 
     # coordinate normalization
     data_list = []
@@ -158,9 +159,9 @@ def generate_dataset_pt(npz_path="/home/alexis/Desktop/landmarks.npz", save_path
 
     
 synthetic_dataset_path = "/home/alexis/Desktop/synthetic-dataset/ComfyUI/output/cfd_target/"
-output_path = "/home/alexis/Desktop/landmarks.npz"
+output_path = "/home/alexis/Desktop/test.npz"
 
-# generate_dataset_npz(synthetic_dataset_path, output_path)
-generate_dataset_pt()
+generate_dataset_npz(synthetic_dataset_path, output_path)
+# generate_dataset_pt()
 # extract_landmarks("/home/alexis/Desktop/synthetic-dataset/ComfyUI/output/cfd_target/result_00563_.png", face_mesh=init_mp())
 

@@ -28,13 +28,13 @@ struct BoundingBox {
     int size = 0;
 }; // for cropping the ROI
 
-BoundingBox ComputeFaceROI(const std::vector<MpNormalizedLandmark>& landmarks, int imgWidth, int imgHeight) 
+BoundingBox ComputeFaceROI(const std::vector<MpNormalizedLandmark>& landmarks, int imgWidth, int imgHeight, int forcedSize = 0) 
 {  
     if (landmarks.empty() || imgWidth <= 0 || imgHeight <= 0) {
         return BoundingBox {0, 0, 0};
     }
 
-    // computation of boundry indicies
+    // Computation of boundary indices
     float minX = 1.0f;
     float maxX = 0.0f;
     float minY = 1.0f;
@@ -47,21 +47,50 @@ BoundingBox ComputeFaceROI(const std::vector<MpNormalizedLandmark>& landmarks, i
         maxY = std::max(maxY, lm.y);
     }
 
-    // logic for padding the image 50%.
+    // 50% padding
     float faceW = (maxX - minX) * static_cast<float>(imgWidth);
     float faceH = (maxY - minY) * static_cast<float>(imgHeight);
-    int size = static_cast<int>(std::round(std::max(faceW, faceH) * 1.5f));
+    int calcSize = static_cast<int>(std::round(std::max(faceW, faceH) * 1.5f));
+    calcSize = std::min({calcSize, imgWidth, imgHeight});
 
-    size = std::min({size, imgWidth, imgHeight});
-    
-    float rawCenterX = (minX + maxX) * 0.5f * static_cast<float>(imgWidth);
-    float rawCenterY = (minY + maxY) * 0.5f * static_cast<float>(imgHeight);
+    int size = (forcedSize > 0) ? std::min({forcedSize, imgWidth, imgHeight}) : calcSize;
 
-    int centerX = static_cast<int>(std::round(rawCenterX));
-    int centerY = static_cast<int>(std::round(rawCenterY));
+    float leftPupilX = 0.0f, leftPupilY = 0.0f;
+    float rightPupilX = 0.0f, rightPupilY = 0.0f;
 
-    int x = std::clamp(centerX - size / 2, 0, imgWidth - size);
-    int y = std::clamp(centerY - size / 2, 0, imgHeight - size);
+    if (landmarks.size() >= 478) {
+        leftPupilX  = landmarks[468].x;
+        leftPupilY  = landmarks[468].y;
+        rightPupilX = landmarks[473].x;
+        rightPupilY = landmarks[473].y;
+    } else if (landmarks.size() >= 468) {
+        leftPupilX  = (landmarks[33].x + landmarks[133].x) * 0.5f;
+        leftPupilY  = (landmarks[33].y + landmarks[133].y) * 0.5f;
+        rightPupilX = (landmarks[362].x + landmarks[263].x) * 0.5f;
+        rightPupilY = (landmarks[362].y + landmarks[263].y) * 0.5f;
+    } else {
+        int centerX = static_cast<int>(std::round((minX + maxX) * 0.5f * static_cast<float>(imgWidth)));
+        int centerY = static_cast<int>(std::round((minY + maxY) * 0.5f * static_cast<float>(imgHeight)));
+        int x = std::clamp(centerX - size / 2, 0, imgWidth - size);
+        int y = std::clamp(centerY - size / 2, 0, imgHeight - size);
+        return BoundingBox{x, y, size};
+    }
+
+    float glabellaX = landmarks[168].x;
+    float glabellaY = landmarks[168].y;
+
+    float pupilMidX = (leftPupilX + rightPupilX) * 0.5f;
+    float pupilMidY = (leftPupilY + rightPupilY) * 0.5f;
+
+    float cranialX = (pupilMidX + glabellaX) * 0.5f;
+    float cranialY = (pupilMidY + glabellaY) * 0.5f;
+
+    // Position crop better using cranial indicies.
+    int cropTop  = static_cast<int>(std::round(cranialY * static_cast<float>(imgHeight) - 0.38f * static_cast<float>(size)));
+    int cropLeft = static_cast<int>(std::round(cranialX * static_cast<float>(imgWidth)  - 0.50f * static_cast<float>(size)));
+
+    int x = std::clamp(cropLeft, 0, imgWidth - size);
+    int y = std::clamp(cropTop,  0, imgHeight - size);
 
     return BoundingBox{x, y, size}; 
 }
@@ -204,7 +233,7 @@ bool GenerateTriplet(
 
     // Crop the faces and resize to 256x256
     BoundingBox bboxOrig = ComputeFaceROI(rawLandmarks, origWidth, origHeight);
-    BoundingBox bboxSynth = ComputeFaceROI(synthLandmarks, synthWidth, synthHeight);
+    BoundingBox bboxSynth = ComputeFaceROI(synthLandmarks, synthWidth, synthHeight, bboxOrig.size);
 
     std::vector<uint8_t> cropOrig(cropDim * cropDim * 4);
     std::vector<uint8_t> cropWarp(cropDim * cropDim * 4);

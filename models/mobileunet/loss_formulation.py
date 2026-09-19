@@ -66,7 +66,7 @@ class PerceptualLoss(nn.Module):
 
 
 class CompositeLoss(nn.Module):
-    def __init__(self, w_char=1.0, w_perc=0.003, w_sobel=0.20):
+    def __init__(self, w_char=0.10, w_perc=0.020, w_sobel=0.02):
         super().__init__()
         self.w_char = w_char
         self.w_perc = w_perc

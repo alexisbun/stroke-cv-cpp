@@ -17,7 +17,7 @@ struct Shaders {
         layout(location = 1) in vec2 a_texCoords;
         out vec2 v_texCoords;
         void main() {
-            gl_Position = vec4(a_position, 0.0, 1.0);
+            gl_Position = a_position;
             v_texCoords = a_texCoords;
         }
     )glsl";
@@ -26,7 +26,7 @@ struct Shaders {
         #version 330 core
         in vec2 v_texCoords;
         out vec4 outColor;
-        uniform sampler 2D u_texture;
+        uniform sampler2D u_texture;
         void main() {
             outColor = texture(u_texture, v_texCoords);
         }

@@ -57,7 +57,7 @@ struct FaceROI {
 
 inline FaceROI
 ComputeFaceROI(const std::vector<MpNormalizedLandmark> &landmarks, int imgW,
-               int imgH) {
+               int imgH, int forcedSize = 0) {
   if (landmarks.empty() || imgW <= 0 || imgH <= 0)
     return FaceROI{};
 
@@ -75,14 +75,46 @@ ComputeFaceROI(const std::vector<MpNormalizedLandmark> &landmarks, int imgW,
 
   float faceW = (maxX - minX) * static_cast<float>(imgW);
   float faceH = (maxY - minY) * static_cast<float>(imgH);
-  int size = static_cast<int>(std::round(std::max(faceW, faceH) * 1.5f));
-  size = std::min({size, imgW, imgH});
+  int calcSize = static_cast<int>(std::round(std::max(faceW, faceH) * 1.5f));
+  calcSize = std::min({calcSize, imgW, imgH});
 
-  int centerX = static_cast<int>(std::round((minX + maxX) * 0.5f * imgW));
-  int centerY = static_cast<int>(std::round((minY + maxY) * 0.5f * imgH));
+  int size = (forcedSize > 0) ? std::min({forcedSize, imgW, imgH}) : calcSize;
 
-  int x = std::clamp(centerX - size / 2, 0, imgW - size);
-  int y = std::clamp(centerY - size / 2, 0, imgH - size);
+  float leftPupilX = 0.0f, leftPupilY = 0.0f;
+  float rightPupilX = 0.0f, rightPupilY = 0.0f;
+
+  if (landmarks.size() >= 478) {
+    leftPupilX  = landmarks[468].x;
+    leftPupilY  = landmarks[468].y;
+    rightPupilX = landmarks[473].x;
+    rightPupilY = landmarks[473].y;
+  } else if (landmarks.size() >= 468) {
+    leftPupilX  = (landmarks[33].x + landmarks[133].x) * 0.5f;
+    leftPupilY  = (landmarks[33].y + landmarks[133].y) * 0.5f;
+    rightPupilX = (landmarks[362].x + landmarks[263].x) * 0.5f;
+    rightPupilY = (landmarks[362].y + landmarks[263].y) * 0.5f;
+  } else {
+    int centerX = static_cast<int>(std::round((minX + maxX) * 0.5f * imgW));
+    int centerY = static_cast<int>(std::round((minY + maxY) * 0.5f * imgH));
+    int x = std::clamp(centerX - size / 2, 0, imgW - size);
+    int y = std::clamp(centerY - size / 2, 0, imgH - size);
+    return FaceROI{x, y, size};
+  }
+
+  float glabellaX = landmarks[168].x;
+  float glabellaY = landmarks[168].y;
+
+  float pupilMidX = (leftPupilX + rightPupilX) * 0.5f;
+  float pupilMidY = (leftPupilY + rightPupilY) * 0.5f;
+
+  float cranialX = (pupilMidX + glabellaX) * 0.5f;
+  float cranialY = (pupilMidY + glabellaY) * 0.5f;
+
+  int cropTop  = static_cast<int>(std::round(cranialY * static_cast<float>(imgH) - 0.38f * static_cast<float>(size)));
+  int cropLeft = static_cast<int>(std::round(cranialX * static_cast<float>(imgW) - 0.50f * static_cast<float>(size)));
+
+  int x = std::clamp(cropLeft, 0, imgW - size);
+  int y = std::clamp(cropTop,  0, imgH - size);
 
   return FaceROI{x, y, size};
 }
