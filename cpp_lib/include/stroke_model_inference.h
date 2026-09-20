@@ -28,9 +28,11 @@ private:
   std::vector<float> outputDeltaValues_;
   std::vector<float> boundaryWeights_;
   std::vector<float> prevDisplacement_;
+  std::vector<std::vector<int>> meshNeighbors_;
 
   bool isFirstFrame_ = true;
-  float smoothingAlpha_ = 0.20f;
+  float smoothingAlpha_ = 0.15f;
 
   void InitializeBoundaryWeights();
+  void InitializeMeshTopology();
 };

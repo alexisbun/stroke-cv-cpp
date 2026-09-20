@@ -43,9 +43,9 @@ def extract_landmarks(img_path, face_mesh):
     return np.array(face_landmark_coords, dtype=np.float32) # a numpy array of shape (478, 3)
 
 def generate_dataset_npz(synthetic_dataset_path, output_npz_path):
-    # Load the image files in /home/alexis/Desktop/synthetic-dataset/ComfyUI/output/cfd_target/
+    # Load the image files in /home/alexis/Desktop/synthetic-dataset/ComfyUI/output/comfyui-output/
     # Odd numbers (starting at result_00001) are normal faces
-    # Even numbers (starting at result_00002) altered  faces, same person as normal
+    # Even numbers (starting at result_00002) are of the same person with an altered face
     face_mesh = init_mp()
     normal = []
     altered = []
@@ -81,9 +81,9 @@ def generate_dataset_npz(synthetic_dataset_path, output_npz_path):
     normal_batched = np.stack(normal, axis=0) if normal else np.empty((0, 478, 3), dtype=np.float32)
     altered_batched = np.stack(altered, axis=0) if altered else np.empty((0, 478, 3), dtype=np.float32)
 
-    print(f"Normal landmarks shape: {normal_batched.shape}") # Output: (522, 478, 3)
-    print(f"Altered landmarks shape: {altered_batched.shape}") # Output: (522, 478, 3)
-    print(f"Total undetected faces: {num_undetected_faces}") # Output: 0
+    print(f"Normal landmarks shape: {normal_batched.shape}") 
+    print(f"Altered landmarks shape: {altered_batched.shape}") 
+    print(f"Total undetected faces: {num_undetected_faces}") 
 
     np.savez_compressed(
         output_npz_path,
@@ -117,7 +117,8 @@ def graph_connectivity():
     return edge_index
 
 # Covert the .npz to a PyTorch geometric graph (.pt)
-def generate_dataset_pt(npz_path="/home/alexis/Desktop/landmarks.npz", save_path="/home/alexis/Desktop/landmarks_dataset.pt"):
+def generate_dataset_pt(npz_path="/home/alexis/Desktop/synthetic-dataset/landmarks/landmarks.npz", 
+                        save_path="/home/alexis/Desktop/synthetic-dataset/landmarks/landmarks.pt"):
     data_npz = np.load(npz_path)
     normal_coords = data_npz['normal']
     altered_coords = data_npz['altered']
@@ -158,10 +159,10 @@ def generate_dataset_pt(npz_path="/home/alexis/Desktop/landmarks.npz", save_path
     print(f"Successfully generated PyTorch Geometric dataset with {len(data_list)} samples as '.pt' to {save_path}.")
 
     
-synthetic_dataset_path = "/home/alexis/Desktop/synthetic-dataset/ComfyUI/output/cfd_target/"
-output_path = "/home/alexis/Desktop/test.npz"
+synthetic_dataset_path = "/home/alexis/Desktop/synthetic-dataset/ComfyUI/output/comfyui-output/"
+output_path = "/home/alexis/Desktop/synthetic-dataset/landmarks/landmarks.npz"
 
-generate_dataset_npz(synthetic_dataset_path, output_path)
-# generate_dataset_pt()
+#generate_dataset_npz(synthetic_dataset_path, output_path)
+generate_dataset_pt()
 # extract_landmarks("/home/alexis/Desktop/synthetic-dataset/ComfyUI/output/cfd_target/result_00563_.png", face_mesh=init_mp())
 

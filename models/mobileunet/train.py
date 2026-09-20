@@ -23,7 +23,7 @@ def compute_psnr(pred: torch.Tensor, target: torch.Tensor, eps: float = 1e-10) -
 def train(
     data_dir: str = "/home/alexis/Desktop/synthetic-dataset/triplet_dataset",
     output_dir: str = "runs",
-    epochs: int = 60,
+    epochs: int = 75,
     batch_size: int = 16,
     num_workers: int = 4,
     lr: float = 3e-4,

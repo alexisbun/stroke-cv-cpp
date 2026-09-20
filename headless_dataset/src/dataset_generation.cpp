@@ -262,7 +262,7 @@ bool GenerateTriplet(
 int main() {
     spdlog::info("Starting headless dataset pipeline");
 
-    const std::string inputDir = "/home/alexis/Desktop/synthetic-dataset/ComfyUI/output/cfd_target";
+    const std::string inputDir = "/home/alexis/Desktop/synthetic-dataset/ComfyUI/output/comfyui-output";
     const std::string outputDir = "/home/alexis/Desktop/synthetic-dataset/triplet_dataset";
 
     const std::string facelandmarkerPath = "/home/alexis/git/stroke-cv-cpp/flutter_ui/assets/face_landmarker.task";

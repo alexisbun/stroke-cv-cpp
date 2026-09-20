@@ -122,7 +122,6 @@ void CameraEngine::renderLoop() {
           std::vector<MpNormalizedLandmark> strokeLandmarks;
           if (strokeModelInference.PredictStrokeLandmarks(landmarks, strokeLandmarks)) {
             spdlog::debug("PredictStrokeLandmarks called!");
-            
             std::vector<float> meshVertexData;
             meshVertexData.reserve(478 * 4);
             
@@ -143,11 +142,17 @@ void CameraEngine::renderLoop() {
               float roiSizeX = static_cast<float>(roiToUse.size) / static_cast<float>(width_);
               float roiSizeY = static_cast<float>(roiToUse.size) / static_cast<float>(height_);
 
+              float mouthX = landmarks.size() > 291 ? landmarks[291].x : 0.5f;
+              float mouthY = landmarks.size() > 291 ? landmarks[291].y : 0.5f;
+              float mouthRoiX = (mouthX - roiMinX) / roiSizeX;
+              float mouthRoiY = (mouthY - roiMinY) / roiSizeY;
+
               eglManager_.DrawStrokeEffect(
                 meshVertexData, 
                 textureId_,
                 roiMinX, roiMinY, roiSizeX, roiSizeY,
-                deltaReady_);
+                mouthRoiX, mouthRoiY,
+                true);
             }
 
             if (currentRoi.size > 0 && mobileUNetInference.IsInitialized()) {

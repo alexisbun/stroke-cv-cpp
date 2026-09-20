@@ -35,6 +35,7 @@ public:
         GLuint textureId,
         float roiMinX, float roiMinY,
         float roiSizeX, float roiSizeY,
+        float mouthRoiX, float mouthRoiY,
         bool hasDelta);
 
 private:
@@ -67,6 +68,7 @@ private:
     GLint strokeRoiMinLoc_ = -1;
     GLint strokeRoiSizeLoc_ = -1;
     GLint strokeHasDeltaLoc_ = -1;
+    GLint strokeMouthCenterLoc_ = -1;
 
     std::unordered_map<AHardwareBuffer *, EGLImageKHR> eglImageCache_;
 };
@@ -146,13 +148,27 @@ struct Shaders
         uniform samplerExternalOES u_texture;
         uniform sampler2D u_deltaTexture;
         uniform bool u_hasDelta;
+        uniform vec2 u_mouthCenterRoi;
+
         void main() {
-            vec3 warpedCamera = texture(u_texture, v_texCoords).rgb;
-            if (u_hasDelta) {
+            vec3 cameraPixel = texture(u_texture, v_texCoords).rgb;
+
+            if (u_hasDelta && v_deltaCoords.x >= 0.0 && v_deltaCoords.x <= 1.0 && 
+                              v_deltaCoords.y >= 0.0 && v_deltaCoords.y <= 1.0) {
+                
                 vec3 delta = texture(u_deltaTexture, v_deltaCoords).rgb * 2.0 - 1.0;
-                outColor = vec4(clamp(warpedCamera + delta, 0.0, 1.0), 1.0);
+                delta = min(delta, delta * 0.20); // Suppress white highlights
+
+                // feather mask centered on active mouth corner in face ROI
+                float dist = distance(v_deltaCoords, u_mouthCenterRoi);
+                float mask = smoothstep(0.35, 0.10, dist); 
+
+                vec3 shaded = cameraPixel * (1.0 + delta * mask * 0.60);
+                outColor = vec4(clamp(shaded, 0.0, 1.0), 1.0);
+
+                // outColor = vec4(clamp(cameraPixel + delta * mask, 0.0, 1.0), 1.0);
             } else {
-                outColor = vec4(warpedCamera, 1.0);
+                outColor = vec4(cameraPixel, 1.0);
             }
         }
     )glsl";

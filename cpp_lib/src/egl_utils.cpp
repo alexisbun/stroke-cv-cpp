@@ -318,6 +318,7 @@ bool EGLManager::InitShaders() {
   strokeRoiMinLoc_ = glGetUniformLocation(strokeProgramId_, "u_roiMin");
   strokeRoiSizeLoc_ = glGetUniformLocation(strokeProgramId_, "u_roiSize");
   strokeHasDeltaLoc_ = glGetUniformLocation(strokeProgramId_, "u_hasDelta");
+  strokeMouthCenterLoc_ = glGetUniformLocation(strokeProgramId_, "u_mouthCenterRoi");
 
   glGenTextures(1, &deltaTextureId_);
   glBindTexture(GL_TEXTURE_2D, deltaTextureId_);
@@ -392,6 +393,7 @@ void EGLManager::UploadDeltaTexture(const uint8_t *rgbBytes256) {
 void EGLManager::DrawStrokeEffect(const std::vector<float> &meshVertexData,
                                   GLuint textureId, float roiMinX,
                                   float roiMinY, float roiSizeX, float roiSizeY,
+                                  float mouthRoiX, float mouthRoiY,
                                   bool hasDelta) {
   if (meshVertexData.empty())
     return;
@@ -408,6 +410,7 @@ void EGLManager::DrawStrokeEffect(const std::vector<float> &meshVertexData,
 
   glUniform2f(strokeRoiMinLoc_, roiMinX, roiMinY);
   glUniform2f(strokeRoiSizeLoc_, roiSizeX, roiSizeY);
+  glUniform2f(strokeMouthCenterLoc_, mouthRoiX, mouthRoiY);
   glUniform1i(strokeHasDeltaLoc_, hasDelta ? 1 : 0);
 
   glBindVertexArray(strokeVao_);

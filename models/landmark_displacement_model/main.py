@@ -29,7 +29,7 @@ RIGHT_STROKE_ZONE = sorted(list(set(
 
 def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    dataset_path = "/home/alexis/Desktop/landmarks_dataset.pt"
+    dataset_path = "/home/alexis/Desktop/synthetic-dataset/landmarks/landmarks.pt"
     data, slices = torch.load(dataset_path, weights_only=False)
     edge_index = data.edge_index
     adj_matrix = to_dense_adj(edge_index)[0].to(device)
